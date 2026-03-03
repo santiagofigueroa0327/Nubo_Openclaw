@@ -1,0 +1,42 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { SearchIcon, UserIcon } from "./ui/icons";
+
+const PAGE_TITLES: Record<string, string> = {
+  "/tasks": "Tasks",
+  "/agents": "Agents",
+  "/logs": "Logs",
+};
+
+function getPageTitle(pathname: string): string {
+  if (pathname.startsWith("/tasks/")) return "Task Detail";
+  return PAGE_TITLES[pathname] ?? "Dashboard";
+}
+
+export function Topbar() {
+  const pathname = usePathname();
+
+  return (
+    <header className="sticky top-0 z-20 h-14 bg-bg/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6">
+      <h2 className="text-base font-semibold text-text">
+        {getPageTitle(pathname)}
+      </h2>
+
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-52 pl-9 pr-3 py-1.5 text-xs bg-bg2/50 border border-border rounded-lg text-text placeholder:text-muted/60 focus:outline-none focus:border-accent-cyan/50 transition-colors"
+          />
+        </div>
+
+        <div className="w-8 h-8 rounded-full bg-bg2 border border-border flex items-center justify-center">
+          <UserIcon className="w-4 h-4 text-muted" />
+        </div>
+      </div>
+    </header>
+  );
+}
