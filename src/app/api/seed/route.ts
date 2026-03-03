@@ -89,6 +89,13 @@ const LOG_MESSAGES: { level: string; message: string }[] = [
 ];
 
 export async function POST() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Seed endpoint is disabled in production" },
+      { status: 403 }
+    );
+  }
+
   const requestId = createRequestId();
   const start = Date.now();
 

@@ -5,18 +5,23 @@
 #          systemctl --user enable --now mission-control
 
 [Unit]
-Description=Mission Control Dashboard
+Description=Mission Control (Next.js production) on port 3010
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/Mission control
-ExecStart=/usr/bin/node node_modules/.bin/next start -p 3010
+WorkingDirectory=%h/nubo-dashboard/mission-control-review
+ExecStart=/bin/bash -lc 'npm run start -- -H 127.0.0.1 --port 3010'
 Environment=NODE_ENV=production
 Environment=DB_PATH=./data/dashboard.sqlite
-Environment=GATEWAY_READONLY=false
-Restart=on-failure
-RestartSec=5
+Environment=GATEWAY_READONLY=true
+Environment=OPENCLAW_BIN=%h/.npm-global/bin/openclaw
+Environment=GATEWAY_POLL_SECONDS=30
+Environment=GATEWAY_ACTIVE_MINUTES=120
+Environment=GATEWAY_TASKS_LIMIT=80
+Environment=GATEWAY_OPENCLAW_TIMEOUT_MS=5000
+Restart=always
+RestartSec=2
 
 [Install]
 WantedBy=default.target
