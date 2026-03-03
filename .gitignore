@@ -40,6 +40,10 @@ yarn-error.log*
 *.sqlite-wal
 *.sqlite-shm
 
+# openclaw (secrets, agent state)
+.openclaw/
+**/auth-profiles.json
+
 # vercel
 .vercel
 

@@ -1,4 +1,4 @@
-08 — Seguridad (tokens, permisos, superficie de ataque y buenas prácticas)
+# 08 — Seguridad (tokens, permisos, superficie de ataque y buenas prácticas)
 
 Este documento define las reglas de seguridad para operar Nubo/OpenClaw y para mantener este repositorio limpio (sin secretos).
 Es crítico porque el sistema integra canales (Telegram/Slack), ejecución de comandos (exec), gateway auth y credenciales de modelos.
@@ -6,224 +6,181 @@ Es crítico porque el sistema integra canales (Telegram/Slack), ejecución de co
 Regla #1: este repo NO contiene keys/tokens reales.
 Regla #2: cualquier secreto expuesto debe rotarse.
 
-1) Activos críticos (lo que hay que proteger)
-1.1 Credenciales de modelos
+## 1) Activos críticos (lo que hay que proteger)
 
-Google API keys (patrón típico: AIza...)
+### 1.1 Credenciales de modelos
 
-Anthropic keys (patrón típico: sk-ant-...)
-
-Cualquier otro provider key/token
-
-Riesgos:
-
-consumo/costos no autorizados,
-
-acceso indirecto a herramientas conectadas,
-
-abuso de prompts/automatizaciones.
-
-1.2 Credenciales de canales
-
-Telegram bot tokens (formato típico: <digits>:<letters...>)
-
-Slack bot tokens (patrón: xoxb-...)
-
-Slack app tokens (patrón: xapp-...)
+- Google API keys (patrón típico: AIza...)
+- Anthropic keys (patrón típico: sk-ant-...)
+- Cualquier otro provider key/token
 
 Riesgos:
 
-toma de control del bot,
+- consumo/costos no autorizados,
+- acceso indirecto a herramientas conectadas,
+- abuso de prompts/automatizaciones.
 
-envío de mensajes maliciosos,
+### 1.2 Credenciales de canales
 
-exfiltración de datos por canales.
-
-1.3 Gateway auth token / password
-
-Token del gateway (modo auth token)
-
-Password del gateway (si se usa)
+- Telegram bot tokens (formato típico: <digits>:<letters...>)
+- Slack bot tokens (patrón: xoxb-...)
+- Slack app tokens (patrón: xapp-...)
 
 Riesgos:
 
-acceso total al panel/WS RPC,
+- toma de control del bot,
+- envío de mensajes maliciosos,
+- exfiltración de datos por canales.
 
-control del sistema (cron, sessions, logs, approvals),
+### 1.3 Gateway auth token / password
 
-abuso de herramientas.
+- Token del gateway (modo auth token)
+- Password del gateway (si se usa)
 
-1.4 Superficie “exec”
+Riesgos:
+
+- acceso total al panel/WS RPC,
+- control del sistema (cron, sessions, logs, approvals),
+- abuso de herramientas.
+
+### 1.4 Superficie "exec"
 
 exec permite ejecutar comandos; aunque sea con approvals, es un vector importante.
 
 Riesgos:
 
-ejecución remota no deseada,
+- ejecución remota no deseada,
+- acceso a archivos y secretos locales,
+- persistencia maliciosa.
 
-acceso a archivos y secretos locales,
+## 2) Principios de seguridad del despliegue actual
 
-persistencia maliciosa.
+### 2.1 Gateway en loopback
 
-2) Principios de seguridad del despliegue actual
-2.1 Gateway en loopback
+- bind=loopback minimiza exposición pública directa.
+- Ideal: exponerlo solo via proxy seguro (VPN/Tailscale) o acceso local.
 
-bind=loopback minimiza exposición pública directa.
+### 2.2 exec.ask=always
 
-Ideal: exponerlo solo via proxy seguro (VPN/Tailscale) o acceso local.
+- Mantener exec.ask = "always" como "seguro" base.
+- Nunca habilitar exec silencioso sin un modelo de seguridad adicional.
 
-2.2 exec.ask=always
+### 2.3 Pairing / allowlists
 
-Mantener exec.ask = "always" como “seguro” base.
+- DM policy "pairing" (en Telegram) evita acceso libre.
+- Group policy "allowlist" reduce spam/abuso.
+- tools.elevated.allowFrom.telegram limita quién puede usar acciones elevadas.
 
-Nunca habilitar exec silencioso sin un modelo de seguridad adicional.
+## 3) Reglas de repo (no filtrar secretos)
 
-2.3 Pairing / allowlists
-
-DM policy “pairing” (en Telegram) evita acceso libre.
-
-Group policy “allowlist” reduce spam/abuso.
-
-tools.elevated.allowFrom.telegram limita quién puede usar acciones elevadas.
-
-3) Reglas de repo (no filtrar secretos)
-3.1 Archivos que NO se suben
+### 3.1 Archivos que NO se suben
 
 Nunca commitear:
 
-~/.openclaw/openclaw.json
-
-~/.openclaw/agents/*/agent/auth-profiles.json
-
-.env reales
-
-bases SQLite (*.sqlite)
-
-tokens de bots / gateway token
-
-dumps de logs con secretos
+- `~/.openclaw/openclaw.json`
+- `~/.openclaw/agents/*/agent/auth-profiles.json`
+- `.env` reales
+- bases SQLite (`*.sqlite`)
+- tokens de bots / gateway token
+- dumps de logs con secretos
 
 Este repo solo debe tener:
 
-documentación redactada,
+- documentación redactada,
+- `*.example` con REDACTED,
+- configs de ejemplo sin llaves.
 
-*.example con REDACTED,
-
-configs de ejemplo sin llaves.
-
-3.2 Búsquedas rápidas antes de push (manual)
+### 3.2 Búsquedas rápidas antes de push (manual)
 
 Antes de hacer commit/push, buscar patrones típicos:
 
+```bash
 git grep -nE "AIza|sk-|xoxb-|xapp-|botToken|appToken|OPENCLAW_GATEWAY_TOKEN|Bearer " || true
-3.3 .gitignore recomendado (mínimo)
+```
+
+### 3.3 .gitignore recomendado (mínimo)
 
 Asegúrate de ignorar:
 
+```
 **/auth-profiles.json
-
 .openclaw/
-
 *.sqlite
-
 .env
-
 data/
+```
 
-4) Rotación de credenciales (cuando algo se expone)
+## 4) Rotación de credenciales (cuando algo se expone)
 
 Si una key/token apareció en chat, logs o archivos:
 
-4.1 Rotar en el proveedor
+### 4.1 Rotar en el proveedor
 
-Google: rotar/revocar API key y generar una nueva.
+- Google: rotar/revocar API key y generar una nueva.
+- Anthropic: rotar/revocar key.
+- Telegram: regenerar token (BotFather) o crear bot nuevo si aplica.
+- Slack: rotar tokens (reinstall app / regenerate).
 
-Anthropic: rotar/revocar key.
+### 4.2 Actualizar runtime (sin subir al repo)
 
-Telegram: regenerar token (BotFather) o crear bot nuevo si aplica.
+- Actualizar auth-profiles.json (main/zenith) para modelos.
+- Actualizar openclaw.json para gateway/canales.
+- Reiniciar servicios:
 
-Slack: rotar tokens (reinstall app / regenerate).
-
-4.2 Actualizar runtime (sin subir al repo)
-
-Actualizar auth-profiles.json (main/zenith) para modelos.
-
-Actualizar openclaw.json para gateway/canales.
-
-Reiniciar servicios:
-
+```bash
 systemctl --user restart openclaw-gateway.service
+systemctl --user restart mission-control.service
+```
 
-systemctl --user restart mission-control.service (si depende de env)
+### 4.3 Verificar
 
-4.3 Verificar
+- Revisa logs de gateway para errores de auth.
+- Prueba que el bot de Telegram responde (y que pairing/allowlist siguen).
+- Valida que Mission Control carga.
 
-Revisa logs de gateway para errores de auth.
+## 5) Controles operativos recomendados
 
-Prueba que el bot de Telegram responde (y que pairing/allowlist siguen).
+### 5.1 Minimizar exposición externa
 
-Valida que Mission Control carga.
+- Mantener gateway en loopback.
+- Si necesitas acceso remoto:
+  - usar túnel autenticado,
+  - o VPN/Tailscale,
+  - o proxy con allowlist de IP.
 
-5) Controles operativos recomendados
-5.1 Minimizar exposición externa
-
-Mantener gateway en loopback.
-
-Si necesitas acceso remoto:
-
-usar túnel autenticado,
-
-o VPN/Tailscale,
-
-o proxy con allowlist de IP.
-
-5.2 Roles/privilegios por “departamento”
+### 5.2 Roles/privilegios por "departamento"
 
 Para replicar a Marketing u otros:
 
-bots separados por departamento,
+- bots separados por departamento,
+- workspaces separados,
+- herramientas permitidas por departamento,
+- exec deshabilitado en departamentos que no lo requieran.
 
-workspaces separados,
-
-herramientas permitidas por departamento,
-
-exec deshabilitado en departamentos que no lo requieran.
-
-5.3 Cron jobs
+### 5.3 Cron jobs
 
 Cron puede ejecutar tareas recurrentes.
 Buenas prácticas:
 
-sesiones aisladas para tareas automáticas,
+- sesiones aisladas para tareas automáticas,
+- límites de tiempo (timeoutSeconds),
+- entrega controlada (announce/webhook/none),
+- evitar cron con permisos elevados.
 
-límites de tiempo (timeoutSeconds),
+## 6) Checklist de seguridad (antes de "listo")
 
-entrega controlada (announce/webhook/none),
+- [ ] Gateway en loopback
+- [ ] exec.ask=always
+- [ ] Pairing/allowlists activas (Telegram/Slack)
+- [ ] tools.elevated.allowFrom.telegram configurado
+- [ ] .gitignore cubre secretos y sqlite
+- [ ] git grep sin patrones de tokens
+- [ ] Si hubo exposición: credenciales rotadas
 
-evitar cron con permisos elevados.
+## Nota final
 
-6) Checklist de seguridad (antes de “listo”)
+Si el objetivo futuro es "auto-mejora" (Zenith/Claude mejorando sistema):
 
- Gateway en loopback
-
- exec.ask=always
-
- Pairing/allowlists activas (Telegram/Slack)
-
- tools.elevated.allowFrom.telegram configurado
-
- .gitignore cubre secretos y sqlite
-
- git grep sin patrones de tokens
-
- Si hubo exposición: credenciales rotadas
-
-Nota final
-
-Si el objetivo futuro es “auto-mejora” (Zenith/Claude mejorando sistema):
-
-separar repositorio (código+docs) de secretos (vault/secret manager),
-
-definir un pipeline de cambios (PRs + revisión humana),
-
-y mantener políticas estrictas sobre exec y pairing.
+- separar repositorio (código+docs) de secretos (vault/secret manager),
+- definir un pipeline de cambios (PRs + revisión humana),
+- y mantener políticas estrictas sobre exec y pairing.

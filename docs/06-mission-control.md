@@ -94,48 +94,49 @@ En este entorno se configuró `OPENCLAW_BIN`, así que es probable que exista in
 
 ## 6) Operación (comandos útiles)
 
+> Para la guía completa de deploy y comandos systemd/nginx, ver [07-deploy-systemd-nginx.md](./07-deploy-systemd-nginx.md).
+
 ### 6.1 Status / restart
 ```bash
 systemctl --user status mission-control.service
 systemctl --user restart mission-control.service
-6.2 Logs
+```
+
+### 6.2 Logs
+```bash
 journalctl --user -u mission-control.service -e | tail -n 200
-6.3 Probar el puerto local
+```
+
+### 6.3 Probar el puerto local
+```bash
 curl -I http://127.0.0.1:3010
-6.4 Probar el proxy nginx (si aplica)
+```
+
+### 6.4 Probar el proxy nginx (si aplica)
+```bash
 curl -I http://127.0.0.1:301
-7) Buenas prácticas (para CloudCode)
+```
 
-Mantener Mission Control read-only por defecto en producción.
+---
 
-Evitar que Mission Control guarde secretos:
+## 7) Buenas prácticas (para CloudCode)
 
-si necesita token de gateway, debe venir de env seguro, no en repo.
+- Mantener Mission Control read-only por defecto en producción.
+- Evitar que Mission Control guarde secretos:
+  - si necesita token de gateway, debe venir de env seguro, no en repo.
+- Si se va a pasar a WS directo:
+  - implementar reconexión con backoff,
+  - manejar event gaps,
+  - soportar token/pairing de forma segura.
+- Mantener la carga baja:
+  - polling moderado,
+  - límites de tasks/historial,
+  - caching SQLite.
 
-Si se va a pasar a WS directo:
+## 8) Checklist antes de deploy
 
-implementar reconexión con backoff,
-
-manejar event gaps,
-
-soportar token/pairing de forma segura.
-
-Mantener la carga baja:
-
-polling moderado,
-
-límites de tasks/historial,
-
-caching SQLite.
-
-8) Checklist antes de deploy
-
- mission-control.service está habilitado y activo
-
- nginx proxy apunta a 127.0.0.1:3010
-
- permisos de data/ correctos (sqlite)
-
- .gitignore bloquea data/ y *.sqlite
-
- variables env documentadas (sin secretos)
+- [ ] mission-control.service está habilitado y activo
+- [ ] nginx proxy apunta a 127.0.0.1:3010
+- [ ] permisos de data/ correctos (sqlite)
+- [ ] .gitignore bloquea data/ y *.sqlite
+- [ ] variables env documentadas (sin secretos)

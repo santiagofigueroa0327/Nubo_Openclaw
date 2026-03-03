@@ -1,188 +1,201 @@
-09 — Troubleshooting (errores comunes y cómo resolverlos)
+# 09 — Troubleshooting (errores comunes y cómo resolverlos)
 
 Este documento reúne los problemas que ya aparecieron en esta instalación y los fixes recomendados.
 
-1) GitHub: git clone devuelve 500 (Internal Server Error)
-Síntoma
+## 1) GitHub: git clone devuelve 500 (Internal Server Error)
 
-git clone https://github.com/... → error 500
+### Síntoma
 
-pero curl -I al repo devuelve 200
+- `git clone https://github.com/...` → error 500
+- pero `curl -I` al repo devuelve 200
 
-Causa probable
+### Causa probable
 
-fallo temporal de GitHub / “git smart HTTP”
+- fallo temporal de GitHub / "git smart HTTP"
+- proxy intermedio / red
+- rate limiting o glitch transitorio
 
-proxy intermedio / red
-
-rate limiting o glitch transitorio
-
-Solución (workaround confiable)
+### Solución (workaround confiable)
 
 Descargar zip:
 
+```bash
 curl -L -o repo.zip https://github.com/<USER>/<REPO>/archive/refs/heads/main.zip
+```
 
 Descomprimir (si falta unzip):
 
+```bash
 sudo apt update
 sudo apt install -y unzip
 unzip -q repo.zip
-Nota
+```
+
+### Nota
 
 El zip NO trae .git. Si quieres push/commit debes inicializar git:
 
+```bash
 cd <REPO>-main
 git init
 git checkout -b main
 git remote add origin https://github.com/<USER>/<REPO>.git
-2) Git: fatal: not a git repository
-Síntoma
+```
 
-git status → “not a git repository”
+## 2) Git: fatal: not a git repository
 
-Causa
+### Síntoma
 
-repo descargado por zip (sin .git)
+- `git status` → "not a git repository"
 
-Fix
+### Causa
+
+- repo descargado por zip (sin .git)
+
+### Fix
 
 Inicializar git como arriba (sección 1).
 
-3) Linux: unzip: command not found
-Fix
+## 3) Linux: unzip: command not found
+
+### Fix
+
+```bash
 sudo apt update
 sudo apt install -y unzip
-4) OpenClaw: /health o /status devuelven HTML
-Síntoma
+```
 
-curl http://127.0.0.1:18789/health devuelve HTML (OpenClaw Control UI)
+## 4) OpenClaw: /health o /status devuelven HTML
 
-Causa
+### Síntoma
 
-el gateway sirve una SPA por HTTP (no REST)
+- `curl http://127.0.0.1:18789/health` devuelve HTML (OpenClaw Control UI)
 
-control real: WebSocket RPC
+### Causa
 
-Fix / comprensión correcta
+- el gateway sirve una SPA por HTTP (no REST)
+- control real: WebSocket RPC
 
-Usar OpenClaw Control UI o WS RPC (ver docs/04-gateway-ws-rpc.md)
+### Fix / comprensión correcta
 
-No asumir endpoints REST “tipo API”.
+- Usar OpenClaw Control UI o WS RPC (ver docs/04-gateway-ws-rpc.md)
+- No asumir endpoints REST "tipo API".
 
-5) systemd user: Failed to connect to bus: No medium found
-Síntoma
+## 5) systemd user: Failed to connect to bus: No medium found
 
-al correr systemctl --user ... aparece el error
+### Síntoma
 
-Causa típica
+- al correr `systemctl --user ...` aparece el error
 
-sesión no tiene systemd user bus activo (contexto no-login / entorno restringido)
+### Causa típica
 
-Fix recomendado
+- sesión no tiene systemd user bus activo (contexto no-login / entorno restringido)
+
+### Fix recomendado
 
 Habilitar linger para el usuario:
 
+```bash
 sudo loginctl enable-linger moltbot
+```
 
 Luego:
 
+```bash
 systemctl --user daemon-reload
 systemctl --user restart openclaw-gateway.service
 systemctl --user restart mission-control.service
-6) Mission Control reinicia mucho / consumo alto
-Síntomas
+```
 
-muchos restarts en journalctl
+## 6) Mission Control reinicia mucho / consumo alto
 
-memoria alta
+### Síntomas
 
-CPU sube
+- muchos restarts en journalctl
+- memoria alta
+- CPU sube
 
-Causas típicas
+### Causas típicas
 
-polling demasiado frecuente
+- polling demasiado frecuente
+- timeouts demasiado bajos causando errores y loops
+- demasiadas tareas/sesiones listadas por request
 
-timeouts demasiado bajos causando errores y loops
-
-demasiadas tareas/sesiones listadas por request
-
-Ajustes recomendados (env tuning)
+### Ajustes recomendados (env tuning)
 
 En override de mission-control.service:
 
-aumentar GATEWAY_POLL_SECONDS (ej. 30s)
-
-ajustar GATEWAY_ACTIVE_MINUTES (ej. 120)
-
-limitar GATEWAY_TASKS_LIMIT (ej. 80)
-
-subir GATEWAY_OPENCLAW_TIMEOUT_MS si hay timeouts
+- aumentar `GATEWAY_POLL_SECONDS` (ej. 30s)
+- ajustar `GATEWAY_ACTIVE_MINUTES` (ej. 120)
+- limitar `GATEWAY_TASKS_LIMIT` (ej. 80)
+- subir `GATEWAY_OPENCLAW_TIMEOUT_MS` si hay timeouts
 
 Reiniciar:
 
+```bash
 systemctl --user daemon-reload
 systemctl --user restart mission-control.service
-7) “No responde el bot” (Telegram)
-Checklist
+```
 
-Gateway está arriba:
+## 7) "No responde el bot" (Telegram)
 
+### Checklist
+
+- Gateway está arriba:
+
+```bash
 systemctl --user status openclaw-gateway.service
+```
 
-Revisar logs del gateway:
+- Revisar logs del gateway:
 
+```bash
 journalctl --user -u openclaw-gateway.service -e | tail -n 200
+```
 
-Verificar policies:
+- Verificar policies:
+  - DM policy pairing (¿requiere aprobación?)
+  - group policy allowlist (¿grupo permitido?)
+- Verificar binding:
+  - telegram accountId -> agentId correcto en openclaw.json
 
-DM policy pairing (¿requiere aprobación?)
+## 8) Pairing requerido / no autorizado (Control UI)
 
-group policy allowlist (¿grupo permitido?)
+### Síntomas
 
-Verificar binding:
+- UI muestra "pairing required" o auth falla
 
-telegram accountId -> agentId correcto en openclaw.json
+### Acciones
 
-8) Pairing requerido / no autorizado (Control UI)
-Síntomas
+- confirmar token correcto (sin espacios)
+- usar URL tokenizada
+- aprobar pairing desde el host (si aplica)
+- revisar eventos device.pair en panel "Nodes/Devices"
 
-UI muestra “pairing required” o auth falla
+## 9) Exec approvals: comandos bloqueados
 
-Acciones
+### Síntomas
 
-confirmar token correcto (sin espacios)
+- UI muestra request de approval
+- o comando se rechaza
 
-usar URL tokenizada
+### Causa
 
-aprobar pairing desde el host (si aplica)
+- `exec.ask=always`
+- denylist de `nodes.denyCommands`
+- approvals file no incluye ese comando/path
 
-revisar eventos device.pair en panel “Nodes/Devices”
+### Fix (seguro)
 
-9) Exec approvals: comandos bloqueados
-Síntomas
+- aprobar explícitamente solo lo necesario
+- mantener denylist para cámara/screen/calendar/etc.
+- documentar cambios en approvals antes de relajarlos
 
-UI muestra request de approval
+## 10) Checklist de diagnóstico rápido (1 minuto)
 
-o comando se rechaza
+> Para la guía completa de deploy y comandos systemd/nginx, ver [07-deploy-systemd-nginx.md](./07-deploy-systemd-nginx.md).
 
-Causa
-
-exec.ask=always
-
-denylist de nodes.denyCommands
-
-approvals file no incluye ese comando/path
-
-Fix (seguro)
-
-aprobar explícitamente solo lo necesario
-
-mantener denylist para cámara/screen/calendar/etc.
-
-documentar cambios en approvals antes de relajarlos
-
-10) Checklist de diagnóstico rápido (1 minuto)
+```bash
 # Gateway
 systemctl --user status openclaw-gateway.service
 curl -I http://127.0.0.1:18789/ | head -n 5
@@ -194,3 +207,4 @@ curl -I http://127.0.0.1:3010 | head -n 5
 # Logs recientes
 journalctl --user -u openclaw-gateway.service -e | tail -n 50
 journalctl --user -u mission-control.service -e | tail -n 50
+```
