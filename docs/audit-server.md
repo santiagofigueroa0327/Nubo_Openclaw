@@ -1,6 +1,6 @@
 # Server Audit: VPS `srv1364133`
 
-_Generated: 2026-03-03 (read-only inspection)_
+_Generated: 2026-03-03 | Updated: 2026-03-03 22:43 UTC (post-P0 hardening, live verification)_
 
 ## 1. System Overview
 
@@ -67,14 +67,12 @@ Ports 80 and 443 are listening (likely nginx or another web server). Port 301 is
 | Port | Process | Bind Address | Accessible From Internet? |
 |------|---------|-------------|--------------------------|
 | 18789 | openclaw-gateway | 127.0.0.1 + ::1 | **No** (loopback only) |
-| 3010 | next-server | `*` (0.0.0.0) | **YES -- SECURITY ISSUE** |
+| 3010 | next-server | `127.0.0.1` | **No** (✅ FIXED — loopback only since 22:43 UTC) |
 | 301 | nginx | 0.0.0.0 | Yes (intentional proxy) |
 | 80 | (web server) | 0.0.0.0 + [::] | Yes |
 | 443 | (web server) | 0.0.0.0 + [::] | Yes |
 
-**Critical finding:** Next.js is listening on **all interfaces** (0.0.0.0:3010). This means Mission Control is directly accessible from the internet on port 3010, **bypassing nginx entirely**. Anyone can access `http://<server-ip>:3010` directly.
-
-**Fix:** Either bind Next.js to `127.0.0.1` only (via `next start -H 127.0.0.1 -p 3010`) or block port 3010 in the firewall (e.g., `ufw deny 3010`).
+**~~Critical finding~~ RESOLVED:** Next.js is now bound to `127.0.0.1` only (confirmed via `ss -tlnp` at 22:43 UTC). The P0-5 fix added `-H 127.0.0.1` to the ExecStart command. Port 3010 is no longer accessible from the internet.
 
 ---
 
@@ -148,37 +146,64 @@ Both agents have `auth-profiles.json` in their agent subdirectories (as document
 
 ## 6. Drift Analysis (Repo vs Docs vs Server)
 
-| Item | Repo (`mission-control.service`) | Docs (06/07) | Server Reality | Status |
-|------|----------------------------------|-------------|----------------|--------|
-| WorkingDirectory | `%h/Mission control` | `%h/nubo-dashboard/mission-control-review` | `%h/nubo-dashboard/mission-control-review` | **REPO WRONG** |
-| ExecStart | `node node_modules/.bin/next start -p 3010` | `npm run start` | `bash -lc 'npm run start -- --port 3010'` | **REPO WRONG** |
-| Description | `Mission Control Dashboard` | — | `Mission Control (Next.js production) on port 3010` | Cosmetic |
-| Restart | `on-failure` | — | `always` | **REPO WRONG** |
-| RestartSec | `5` | — | `2` | Minor |
-| GATEWAY_READONLY | `false` | `true` (recommended) | `true` (via override) | **REPO WRONG** |
-| DB_PATH | `./data/dashboard.sqlite` | same | Not in unit (defaults work) | OK |
-| OPENCLAW_BIN | Not in repo | documented | `/home/moltbot/.npm-global/bin/openclaw` | **REPO MISSING** |
-| GATEWAY_POLL_SECONDS | Not in repo | `30` | `30` | **REPO MISSING** |
-| GATEWAY_ACTIVE_MINUTES | Not in repo | `120` | `120` | **REPO MISSING** |
-| GATEWAY_TASKS_LIMIT | Not in repo | `80` | `80` | **REPO MISSING** |
-| GATEWAY_OPENCLAW_TIMEOUT_MS | Not in repo | `5000` | `5000` | **REPO MISSING** |
-| nginx config | Port 301, no SSL | Port 301 | Port 301, no SSL | Match |
-| Next.js bind address | Not specified | Not specified | `0.0.0.0` (all interfaces) | **SECURITY** |
-| OpenClaw version | Not tracked | `2026.3.2` (in overview) | `2026.2.26` → `2026.3.2` | Docs updated |
+### 6.1 Three-Location Comparison (post-P0 hardening)
 
-**Summary:** The `mission-control.service` file in the repo is **significantly out of date**. It would fail to start if deployed as-is because the `WorkingDirectory` path doesn't exist.
+| Location A | Location B | Status |
+|-----------|-----------|--------|
+| Repo (`~/Nubo_Openclaw-main/mission-control.service`) | Deploy (`~/nubo-dashboard/mission-control-review/mission-control.service`) | ✅ **IDENTICAL** |
+| Deploy (`~/nubo-dashboard/mission-control-review/mission-control.service`) | Installed (`~/.config/systemd/user/mission-control.service`) | ✅ **IDENTICAL** |
+| Installed base unit | `override.conf` | ⚠️ **OVERRIDE IS STALE** |
+
+### 6.2 Override Drift (remaining issue)
+
+The file `~/.config/systemd/user/mission-control.service.d/override.conf` contains:
+
+```ini
+[Service]
+Environment=PATH=/usr/local/sbin:/usr/local/bin:...:/home/moltbot/.npm-global/bin  # UNIQUE
+Environment=OPENCLAW_BIN=/home/moltbot/.npm-global/bin/openclaw  # DUPLICATE
+Environment=GATEWAY_POLL_SECONDS=5    # SET TWICE — dead code
+Environment=GATEWAY_READONLY=true     # DUPLICATE
+Environment=GATEWAY_POLL_SECONDS=30   # overrides the =5 above
+Environment=GATEWAY_ACTIVE_MINUTES=120   # DUPLICATE
+Environment=GATEWAY_TASKS_LIMIT=80       # DUPLICATE
+Environment=GATEWAY_OPENCLAW_TIMEOUT_MS=5000  # DUPLICATE
+```
+
+**Issues:**
+1. `GATEWAY_POLL_SECONDS` set twice (`5` then `30`). Systemd uses last value — `5` is dead code.
+2. All values except `PATH` are now redundant with the updated base unit file.
+3. `PATH` is **only** in the override — if removed, `npm` won't be found.
+
+**Fix:** Add `Environment=PATH=...` to the base unit file in repo, then delete `override.conf` on server.
+
+### 6.3 Previous Drift (resolved)
+
+| Item | Old Repo | Server Reality | Status |
+|------|----------|----------------|--------|
+| WorkingDirectory | `%h/Mission control` | `%h/nubo-dashboard/mission-control-review` | ✅ FIXED |
+| ExecStart | `node node_modules/.bin/next` | `bash -lc 'npm run start -- -H 127.0.0.1'` | ✅ FIXED |
+| Restart | `on-failure` | `always` | ✅ FIXED |
+| GATEWAY_READONLY | `false` | `true` | ✅ FIXED |
+| OPENCLAW_BIN | Missing | Present | ✅ FIXED |
+| Tuning vars | Missing | Present | ✅ FIXED |
+| Next.js bind | `0.0.0.0` | `127.0.0.1` | ✅ FIXED |
+| nginx config | Port 301, no SSL | Port 301, no SSL | Match |
+| Deploy `.env` file | — | Not present (env via systemd) | ✅ Correct |
+
+**Summary:** All previous drift between repo and server has been resolved. The only remaining issue is the stale `override.conf` which should be cleaned up after adding `PATH` to the base unit.
 
 ---
 
 ## 7. Risks and Recommendations
 
-### 7.1 Critical
+### 7.1 Critical (all resolved)
 
-| # | Risk | Impact | Recommendation |
-|---|------|--------|---------------|
-| C1 | Next.js on 0.0.0.0:3010 | Dashboard accessible directly from internet, bypassing nginx | Bind to 127.0.0.1: `next start -H 127.0.0.1 -p 3010` |
-| C2 | Repo service file is wrong | Deploy from repo would fail | Update `mission-control.service` to match server |
-| C3 | No firewall rule for 3010 | Direct access to Node.js process | Add `ufw deny 3010` or equivalent |
+| # | Risk | Impact | Status |
+|---|------|--------|--------|
+| C1 | ~~Next.js on 0.0.0.0:3010~~ | ~~Dashboard accessible from internet~~ | ✅ FIXED — bound to 127.0.0.1 (confirmed live) |
+| C2 | ~~Repo service file is wrong~~ | ~~Deploy from repo would fail~~ | ✅ FIXED — service file synced |
+| C3 | No firewall rule for 3010 | Low risk now (loopback) | Still recommended as defense-in-depth |
 
 ### 7.2 Important
 

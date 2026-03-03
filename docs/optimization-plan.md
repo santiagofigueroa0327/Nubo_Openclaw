@@ -1,7 +1,7 @@
 # Optimization Plan: Nubo/OpenClaw + Mission Control
 
 _Based on: [audit-repo.md](./audit-repo.md), [audit-server.md](./audit-server.md)_
-_Generated: 2026-03-03_
+_Generated: 2026-03-03 | Updated: 2026-03-03 (P0 complete, P1 next)_
 
 ---
 
@@ -60,16 +60,24 @@ Gateway → WS RPC events → Mission Control → SQLite cache → Dashboard UI
 
 ## 2. Priority Backlog
 
-### P0 — Critical (do first, blocks security or basic operation)
+### P0 — Critical ✅ ALL COMPLETE
+
+| # | Problem | Status | Commit |
+|---|---------|--------|--------|
+| P0-1 | Seed endpoint has no production guard | ✅ DONE | `a9e8241` — returns 403 when `NODE_ENV=production` |
+| P0-2 | `.gitignore` missing `.openclaw/` and `auth-profiles.json` | ✅ DONE | `a9e8241` — added both entries |
+| P0-3 | `GATEWAY_READONLY=false` as default | ✅ DONE | `a9e8241` — now `true` in `.env.example` + service |
+| P0-4 | Service file doesn't match server | ✅ DONE | `a9e8241` — WorkingDirectory, ExecStart, Restart, env vars |
+| P0-5 | Next.js on 0.0.0.0:3010 (internet-accessible) | ✅ DONE | `a9e8241` — `-H 127.0.0.1` in ExecStart (confirmed live) |
+| P0-6 | Root README.md is boilerplate | ✅ DONE | `a9e8241` — project-specific README with env vars table |
+
+### P0+ — New Findings (from updated server audit)
 
 | # | Problem | Impact | Solution | Files Affected | Risk | Validation |
 |---|---------|--------|----------|---------------|------|-----------|
-| P0-1 | Seed endpoint deletes all production data with no guard | Total data loss from any HTTP client | Add `if (process.env.NODE_ENV === 'production') return 403` at top of handler | `src/app/api/seed/route.ts` | Very Low | `curl -X POST /api/seed` returns 403 in production |
-| P0-2 | `.gitignore` missing `.openclaw/` and `auth-profiles.json` | Secrets could be committed accidentally | Add `.openclaw/` and `**/auth-profiles.json` to `.gitignore` | `.gitignore` | Very Low | `git check-ignore .openclaw/test` returns match |
-| P0-3 | `GATEWAY_READONLY=false` as default everywhere | Write operations enabled in new deployments | Change to `true` in `.env.example` and `mission-control.service` | `.env.example`, `mission-control.service` | Very Low | Check file contents |
-| P0-4 | Service file in repo doesn't match server (would fail to deploy) | Deploy from repo would break Mission Control | Update `mission-control.service` to match actual server config | `mission-control.service` | Low | `diff` with server file shows no differences |
-| P0-5 | Next.js listening on 0.0.0.0:3010 (internet-accessible) | Dashboard accessible bypassing nginx | Add `-H 127.0.0.1` to ExecStart or document firewall rule | `mission-control.service` | Low | `ss -tlnp | grep 3010` shows 127.0.0.1 only |
-| P0-6 | Root README.md is generic Next.js boilerplate | No project context for new contributors | Replace with project-specific README | `README.md` | Very Low | Visual check |
+| P0+-1 | `override.conf` is stale and redundant with base unit | Confusing drift, `GATEWAY_POLL_SECONDS` set twice (5 then 30) | Add `Environment=PATH=...` to base `mission-control.service`, then delete override on server | `mission-control.service` + server cleanup | Low | `systemctl --user cat mission-control.service` shows no override |
+| P0+-2 | Error messages leak internal details to API clients | Stack traces, file paths, SQL errors exposed | Return generic messages in production, log full details server-side only | All `route.ts` catch blocks | Low | Error responses only contain generic message + requestId |
+| P0+-3 | `parseAgent()` duplicated in 2 files | Maintenance risk if logic diverges | Extract to `src/lib/utils.ts` or new `src/lib/parsers.ts` | `src/app/api/agents/route.ts`, `src/app/agents/page.tsx` | Very Low | Import from shared module |
 
 ### P1 — Important (do soon, improves security and reliability)
 
@@ -116,41 +124,38 @@ Gateway → WS RPC events → Mission Control → SQLite cache → Dashboard UI
 
 ## 4. Proposed PR Sequence
 
-### PR 1: Docs Formatting + Index
-- **Branch:** `sprint0/docs-formatting-index`
-- **Status:** ✅ Ready (committed locally)
-- **Scope:** Fix markdown across 10 docs + create `docs/README.md`
-
-### PR 2: Repo Hygiene + Security Quick Wins
-- **Branch:** `sprint0/repo-hygiene`
+### PR #5: Sprint 0 — Docs + P0 Security Hardening (MERGED)
+- **Branch:** `sprint0/docs-formatting-index` → merged to `main`
+- **Status:** ✅ Merged as PR #5
 - **Scope:**
+  - Fix markdown across 10 docs + create `docs/README.md`
   - Gate seed endpoint (P0-1)
   - Fix `.gitignore` (P0-2)
   - Set `GATEWAY_READONLY=true` default (P0-3)
-  - Update `mission-control.service` to match server (P0-4)
-  - Bind Next.js to loopback (P0-5)
+  - Update `mission-control.service` to match server (P0-4/P0-5)
   - Replace root README (P0-6)
   - Update `.env.example` with all vars (P1-6)
+  - Create `docs/audit-repo.md`, `docs/audit-server.md`, `docs/optimization-plan.md`
 
-### PR 3: Mission Control Quick Wins
+### PR Next-1: Mission Control Quick Wins
 - **Branch:** `sprint0/mc-quick-wins`
 - **Scope:**
   - Add health check endpoint (P1-2)
   - Persist rate limiter in SQLite (P1-4)
 
-### PR 4: Auth Middleware + Validation
+### PR Next-2: Auth Middleware + Validation
 - **Branch:** `sprint0/auth-validation`
 - **Scope:**
   - Bearer token middleware (P1-1)
   - Zod request validation (P1-5)
 
-### PR 5: CI Pipeline
+### PR Next-3: CI Pipeline
 - **Branch:** `sprint0/ci-pipeline`
 - **Scope:**
   - GitHub Actions workflow (P1-7)
   - Add test infrastructure (P2-1 foundation)
 
-### PR 6: New Department/Agent Template
+### PR Next-4: New Department/Agent Template
 - **Branch:** `sprint0/department-template`
 - **Scope:**
   - Document step-by-step guide for adding a new department
@@ -163,10 +168,10 @@ Gateway → WS RPC events → Mission Control → SQLite cache → Dashboard UI
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| Open P0 security findings | 6 | 0 |
+| Open P0 security findings | ~~6~~ 0 | 0 ✅ |
 | API routes with auth | 0/9 | 9/9 |
 | Test coverage | 0% | >60% (unit + integration) |
 | CI pipeline | None | Lint + typecheck + build on every PR |
-| Secret scan in `.gitignore` | Partial | Complete (all known patterns) |
-| Dashboard accessible without nginx | Yes (port 3010 open) | No (loopback only) |
-| Service file matches server | No | Yes |
+| Secret scan in `.gitignore` | ~~Partial~~ Complete ✅ | Complete (all known patterns) |
+| Dashboard accessible without nginx | ~~Yes~~ No ✅ | No (loopback only) |
+| Service file matches server | ~~No~~ Yes ✅ | Yes |

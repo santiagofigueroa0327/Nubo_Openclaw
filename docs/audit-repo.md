@@ -1,6 +1,6 @@
 # Repository Audit: Nubo/OpenClaw + Mission Control
 
-_Generated: 2026-03-03_
+_Generated: 2026-03-03 | Updated: 2026-03-03 (post-P0 hardening)_
 
 ## 1. Repository Structure
 
@@ -126,11 +126,9 @@ Current `.gitignore` covers:
 - ✅ `/data/`
 - ✅ `*.sqlite`, `*.sqlite-wal`, `*.sqlite-shm`
 - ✅ `.vercel`
-
-**Missing entries (recommended to add):**
-- ❌ `.openclaw/` — the OpenClaw config directory contains secrets
-- ❌ `**/auth-profiles.json` — per-agent credentials file
-- ❌ `*.pem` — SSL certificates/keys
+- ✅ `.openclaw/` — FIXED in P0-2
+- ✅ `**/auth-profiles.json` — FIXED in P0-2
+- ✅ `*.pem` — SSL certificates/keys
 
 ### 3.3 API Endpoint Security
 
@@ -144,16 +142,17 @@ Current `.gitignore` covers:
 | `/api/tasks/[id]/logs` | GET | None | Query params | Low |
 | `/api/agents` | GET | None | None | Low |
 | `/api/agents` | POST | None | Basic field check | **Medium** |
-| `/api/seed` | POST | **None** | **None** | **CRITICAL** |
+| `/api/seed` | POST | **NODE_ENV gate** | **None** | ~~CRITICAL~~ **Low** (FIXED P0-1) |
 
-**Critical finding:** `POST /api/seed` (`src/app/api/seed/route.ts:99-103`) deletes ALL data from all 4 tables and replaces with test fixtures. No auth, no environment check, accessible in production.
+**~~Critical~~ Fixed:** `POST /api/seed` now returns 403 in production (`src/app/api/seed/route.ts:92-97`). In development mode it still deletes all data — this is intentional for seeding test fixtures.
 
 ### 3.4 Configuration Security
 
-- `GATEWAY_READONLY=false` in both `.env.example` and `mission-control.service` — write operations enabled by default
+- ~~`GATEWAY_READONLY=false` in both `.env.example` and `mission-control.service`~~ — FIXED P0-3: now `true` by default
 - Rate limiter is in-memory only (`src/lib/rate-limit.ts`) — resets on server restart, provides no persistent protection
 - No CORS configuration (relies on Next.js defaults)
 - No CSP headers configured
+- Error messages in API responses leak internal details (`message: String(err)`) — could expose stack traces, file paths, or SQL errors to clients
 
 ---
 
@@ -214,10 +213,14 @@ Enforced in `PATCH /api/tasks/[id]` — invalid transitions return 409.
 
 ### 5.1 systemd Service File (`mission-control.service`)
 
-**Issues found:**
-- Line 13: `WorkingDirectory=%h/Mission control` — **space in path** (fragile, doesn't match server reality)
-- `Environment=GATEWAY_READONLY=false` — should be `true` for production
-- `Restart=on-failure` — server actually uses `Restart=always` (drift)
+**~~Issues found~~ FIXED in P0-4/P0-5:**
+- ~~`WorkingDirectory=%h/Mission control`~~ → now `%h/nubo-dashboard/mission-control-review`
+- ~~`GATEWAY_READONLY=false`~~ → now `true`
+- ~~`Restart=on-failure`~~ → now `always`, `RestartSec=2`
+- Added `-H 127.0.0.1` for loopback binding (P0-5)
+- Added all gateway tuning env vars (OPENCLAW_BIN, POLL_SECONDS, etc.)
+
+**Remaining issue:** An `override.conf` exists on the server that is now redundant with the updated base unit file. It should be removed after adding `PATH=` to the base unit (see audit-server.md).
 
 ### 5.2 nginx Configuration (`nginx-mission-control.conf`)
 
@@ -228,19 +231,19 @@ Enforced in `PATCH /api/tasks/[id]` — invalid transitions return 409.
 
 ### 5.3 Environment Variables (`.env.example`)
 
+**FIXED in P0-3 + P1-6.** Now contains all variables:
+
 ```
 PORT=3010
 DB_PATH=./data/dashboard.sqlite
 NODE_ENV=development
-GATEWAY_READONLY=false
+GATEWAY_READONLY=true
+OPENCLAW_BIN=/home/moltbot/.npm-global/bin/openclaw
+GATEWAY_POLL_SECONDS=30
+GATEWAY_ACTIVE_MINUTES=120
+GATEWAY_TASKS_LIMIT=80
+GATEWAY_OPENCLAW_TIMEOUT_MS=5000
 ```
-
-Missing from example (present on server via override):
-- `OPENCLAW_BIN`
-- `GATEWAY_POLL_SECONDS`
-- `GATEWAY_ACTIVE_MINUTES`
-- `GATEWAY_TASKS_LIMIT`
-- `GATEWAY_OPENCLAW_TIMEOUT_MS`
 
 ---
 
@@ -250,10 +253,10 @@ Missing from example (present on server via override):
 
 | # | Finding | File | Line | Fix |
 |---|---------|------|------|-----|
-| Q1 | Seed endpoint has no auth/env guard | `src/app/api/seed/route.ts` | 91 | Add `NODE_ENV !== 'production'` check |
-| Q2 | `.gitignore` missing `.openclaw/` | `.gitignore` | — | Add `.openclaw/` and `**/auth-profiles.json` |
-| Q3 | `GATEWAY_READONLY=false` default | `.env.example` | 4 | Change to `true` |
-| Q4 | Root README is boilerplate | `README.md` | — | Replace with project-specific content |
+| Q1 | ~~Seed endpoint has no auth/env guard~~ | `src/app/api/seed/route.ts` | 92 | ✅ DONE — returns 403 in production |
+| Q2 | ~~`.gitignore` missing `.openclaw/`~~ | `.gitignore` | 43-45 | ✅ DONE |
+| Q3 | ~~`GATEWAY_READONLY=false` default~~ | `.env.example` | 6 | ✅ DONE — now `true` |
+| Q4 | ~~Root README is boilerplate~~ | `README.md` | — | ✅ DONE — project-specific README |
 | Q5 | Add health check endpoint | — | — | Create `GET /api/health` returning uptime/status |
 
 ### 6.2 Medium Changes
@@ -261,9 +264,9 @@ Missing from example (present on server via override):
 | # | Finding | Impact | Fix |
 |---|---------|--------|-----|
 | M1 | No authentication on any API route | Any client can create/modify tasks and agents | Add Bearer token middleware |
-| M2 | Service file doesn't match server reality | Deploying from repo would break | Update `mission-control.service` to match server |
+| M2 | ~~Service file doesn't match server reality~~ | ~~Deploying from repo would break~~ | ✅ DONE (P0-4/P0-5) |
 | M3 | Rate limiter resets on restart | Burst protection lost after restart | Persist in SQLite |
-| M4 | `.env.example` missing gateway tuning vars | New deploys miss critical config | Add all vars with documented defaults |
+| M4 | ~~`.env.example` missing gateway tuning vars~~ | ~~New deploys miss critical config~~ | ✅ DONE (P1-6) |
 | M5 | No input validation (zod/schema) | Malformed data can enter DB | Add validation to POST/PATCH routes |
 
 ### 6.3 Large Changes
@@ -282,10 +285,10 @@ Missing from example (present on server via override):
 
 | Risk | Severity | Likelihood | Impact | Mitigation |
 |------|----------|-----------|--------|------------|
-| Seed endpoint wipes production data | Critical | Medium | Total data loss | Gate behind NODE_ENV check (Q1) |
+| ~~Seed endpoint wipes production data~~ | ~~Critical~~ | ~~Medium~~ | ~~Total data loss~~ | ✅ FIXED — NODE_ENV gate (P0-1) |
 | No API auth allows unauthorized writes | High | High | Data integrity | Add auth middleware (M1) |
-| Next.js on 0.0.0.0 bypasses nginx | High | Already happening | Direct access | Bind to 127.0.0.1 only |
-| Service file drift causes deploy failure | Medium | High on redeploy | Service won't start | Sync service file with server (M2) |
+| ~~Next.js on 0.0.0.0 bypasses nginx~~ | ~~High~~ | ~~Already happening~~ | ~~Direct access~~ | ✅ FIXED — loopback binding (P0-5) |
+| ~~Service file drift causes deploy failure~~ | ~~Medium~~ | ~~High on redeploy~~ | ~~Service won't start~~ | ✅ FIXED (P0-4) |
 | In-memory rate limiter ineffective after restart | Medium | Medium | Burst attacks | Persist in SQLite (M3) |
 | No tests = silent regressions | Medium | High | Bugs in production | Add test suite (L1) |
 | framer-motion adds ~100KB to bundle | Low | N/A | Page load speed | Evaluate if needed or replace with CSS |
