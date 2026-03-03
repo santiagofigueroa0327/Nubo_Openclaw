@@ -41,7 +41,9 @@ Este documento define la arquitectura real del sistema Nubo/OpenClaw en el VPS y
       │  - SQLite: dashboard.sqlite                 │
       │  - modo read-only + polling tuning          │
       └─────────────────────────────────────────────┘
+
 ## 2) Roles: Nubo vs Zenith (en este VPS)
+
 ### 2.1 Nubo (identidad/UX)
 
 En este entorno, Nubo se define más como:
@@ -71,6 +73,7 @@ Todo mensaje entrante desde la cuenta Zenith en Telegram entra directamente al a
 Zenith tiene su propio workspace: /home/moltbot/.openclaw/workspace-zenith.
 
 ## 3) Workspaces y estado
+
 ### 3.1 Workspace global
 
 agents.defaults.workspace = /home/moltbot/.openclaw/workspace
@@ -99,6 +102,7 @@ Se asume que persiste:
 - metadata para UI.
 
 ## 4) Sesiones (Session Model)
+
 ### 4.1 Qué es una sesión
 
 Una sesión representa un “hilo de contexto” (stateful) mantenido por el gateway/runtime.
@@ -125,6 +129,7 @@ Esto es crítico para:
 - evitar acumulación infinita.
 
 ## 5) Tools y permisos (control operativo)
+
 ### 5.1 allow/deny
 
 Los agentes tienen tools permitidas (allowlist) configuradas.
@@ -146,6 +151,7 @@ Existe un mecanismo de “elevated” permitiendo acciones elevadas solo desde a
 Esto protege operaciones sensibles si el bot está expuesto a chats.
 
 ## 6) Subagentes y delegación
+
 ### 6.1 Política actual
 
 - maxSpawnDepth = 1
@@ -165,6 +171,7 @@ Como no hay router/prompt en agentDir, la “delegación” está gobernada por:
 - y la política global de subagents en openclaw.json.
 
 ## 7) Gateway: HTTP vs WS (importante para arquitectura)
+
 ### 7.1 HTTP
 
 El gateway sirve una SPA (“OpenClaw Control”).
@@ -185,9 +192,10 @@ Esto define:
 
 Ver contrato completo:
 
-docs/04-gateway-ws-rpc.md
+[04-gateway-ws-rpc.md](./04-gateway-ws-rpc.md)
 
 ## 8) Mission Control vs OpenClaw Control UI
+
 ### 8.1 OpenClaw Control UI
 
 - vive en el puerto del gateway
@@ -210,6 +218,7 @@ En un futuro:
 ## 9) Blueprint para replicar a “Marketing Department”
 
 > Para detalles sobre canales y bindings, ver [05-channels-telegram-slack.md](./05-channels-telegram-slack.md).
+
 ### 9.1 Patrón recomendado (replicable)
 
 - Crear agente: marketing

@@ -78,7 +78,7 @@ sudo apt install -y unzip
 
 ### Fix / comprensión correcta
 
-- Usar OpenClaw Control UI o WS RPC (ver docs/04-gateway-ws-rpc.md)
+- Usar OpenClaw Control UI o WS RPC (ver [04-gateway-ws-rpc.md](./04-gateway-ws-rpc.md))
 - No asumir endpoints REST "tipo API".
 
 ## 5) systemd user: Failed to connect to bus: No medium found
