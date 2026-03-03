@@ -100,14 +100,20 @@ Esto implica que, al menos en esta versión, el control UI espera protocolo 3.
   "method": "<rpc.method>",
   "params": { }
 }
-5.2 Response (success)
+```
+
+### 5.2 Response (success)
+```json
 {
   "type": "res",
   "id": "<uuid>",
   "ok": true,
   "payload": { }
 }
-5.3 Response (error)
+```
+
+### 5.3 Response (error)
+```json
 {
   "type": "res",
   "id": "<uuid>",
@@ -118,207 +124,171 @@ Esto implica que, al menos en esta versión, el control UI espera protocolo 3.
     "details": { }
   }
 }
-5.4 Event (server push)
+```
+
+### 5.4 Event (server push)
+```json
 {
   "type": "event",
   "event": "<eventName>",
   "payload": { },
   "seq": 123
 }
+```
 
 Notas:
 
 La UI monitorea seq y puede advertir “event gap detected”.
 
-6) Handshake (connect + connect.challenge)
+## 6) Handshake (connect + connect.challenge)
 
 La UI intenta conectar y puede recibir un evento:
 
-connect.challenge con nonce
+- `connect.challenge` con nonce
 
-Luego envía connect con un payload que incluye:
+Luego envía `connect` con un payload que incluye:
 
-minProtocol, maxProtocol
-
-metadata del cliente (id/version/platform/mode/instanceId)
-
-role + scopes (ej. operador/admin en UI)
-
-device identity (si está disponible)
-
-auth (token/password)
+- `minProtocol`, `maxProtocol`
+- metadata del cliente (id/version/platform/mode/instanceId)
+- role + scopes (ej. operador/admin en UI)
+- device identity (si está disponible)
+- auth (token/password)
 
 Si el connect falla, el WS puede cerrarse con “connect failed”.
 
-7) Métodos RPC (catálogo práctico)
+## 7) Métodos RPC (catálogo práctico)
 
 Lista basada en lo observado en el bundle. Puede haber más métodos en el backend.
 Estos son los relevantes para operación y debugging.
 
-7.1 Core
+### 7.1 Core
 
-status — estado general del gateway
+- `status` — estado general del gateway
+- `health` — health snapshot
+- `last-heartbeat`
+- `connect`
 
-health — health snapshot
+### 7.2 Modelos
 
-last-heartbeat
+- `models.list`
 
-connect
+### 7.3 Agentes / Identidad
 
-7.2 Modelos
+- `agents.list`
+- `agent.identity.get`
 
-models.list
+### 7.4 Tools / Catálogo / Skills
 
-7.3 Agentes / Identidad
+- `tools.catalog` (incluye plugins)
+- `skills.status`
+- `skills.update` (enable/disable + apiKey injection)
+- `skills.install`
 
-agents.list
+### 7.5 Sesiones
 
-agent.identity.get
+- `sessions.list`
+- `sessions.patch`
+- `sessions.delete`
+- `sessions.usage`
+- `sessions.usage.timeseries`
+- `sessions.usage.logs`
 
-7.4 Tools / Catálogo / Skills
+### 7.6 Chat (intervención directa desde panel)
 
-tools.catalog (incluye plugins)
+- `chat.history`
+- `chat.send`
+- `chat.abort`
 
-skills.status
+### 7.7 Logs
 
-skills.update (enable/disable + apiKey injection)
+- `logs.tail`
 
-skills.install
+### 7.8 Presencia / instancias
 
-7.5 Sesiones
+- `system-presence`
+- `node.list`
 
-sessions.list
+### 7.9 Cron jobs
 
-sessions.patch
+- `cron.status`
+- `cron.list`
+- `cron.add`
+- `cron.update`
+- `cron.remove`
+- `cron.run`
+- `cron.runs`
 
-sessions.delete
+### 7.10 Pairing / Device tokens
 
-sessions.usage
+- `device.pair.list`
+- `device.pair.approve`
+- `device.pair.reject`
+- `device.token.rotate`
+- `device.token.revoke`
 
-sessions.usage.timeseries
+### 7.11 Exec approvals (seguridad)
 
-sessions.usage.logs
+- `exec.approvals.get`
+- `exec.approvals.set`
+- `exec.approvals.node.get`
+- `exec.approvals.node.set`
 
-7.6 Chat (intervención directa desde panel)
+### 7.12 Channels (estado / logout)
 
-chat.history
+- `channels.status`
+- `channels.logout`
 
-chat.send
+## 8) Eventos (server push) observados
 
-chat.abort
+- `agent`
+- `chat`
+- `presence`
+- `cron`
+- `device.pair.requested`
+- `device.pair.resolved`
+- `exec.approval.requested`
+- `exec.approval.resolved`
+- `update.available`
+- `connect.challenge`
 
-7.7 Logs
-
-logs.tail
-
-7.8 Presencia / instancias
-
-system-presence
-
-node.list
-
-7.9 Cron jobs
-
-cron.status
-
-cron.list
-
-cron.add
-
-cron.update
-
-cron.remove
-
-cron.run
-
-cron.runs
-
-7.10 Pairing / Device tokens
-
-device.pair.list
-
-device.pair.approve
-
-device.pair.reject
-
-device.token.rotate
-
-device.token.revoke
-
-7.11 Exec approvals (seguridad)
-
-exec.approvals.get
-
-exec.approvals.set
-
-exec.approvals.node.get
-
-exec.approvals.node.set
-
-7.12 Channels (estado / logout)
-
-channels.status
-
-channels.logout
-
-8) Eventos (server push) observados
-
-agent
-
-chat
-
-presence
-
-cron
-
-device.pair.requested
-
-device.pair.resolved
-
-exec.approval.requested
-
-exec.approval.resolved
-
-update.available
-
-connect.challenge
-
-9) Sobre HTTP /api/* (nota)
+## 9) Sobre HTTP /api/* (nota)
 
 El bundle referencia rutas tipo:
 
-/api/channels/nostr/<accountId>/profile (GET/PUT)
-
-/api/channels/nostr/<accountId>/profile/import (POST)
+- `/api/channels/nostr/<accountId>/profile` (GET/PUT)
+- `/api/channels/nostr/<accountId>/profile/import` (POST)
 
 Pero:
 
-GET /api puede devolver HTML (SPA), mientras que rutas específicas pueden existir.
+- GET `/api` puede devolver HTML (SPA), mientras que rutas específicas pueden existir.
+- Para control general, el contrato estable es WS RPC.
 
-Para control general, el contrato estable es WS RPC.
+## 10) Pruebas rápidas (operación)
 
-10) Pruebas rápidas (operación)
-10.1 Verificar que el gateway sirve la UI (HTTP)
+### 10.1 Verificar que el gateway sirve la UI (HTTP)
+```bash
 curl -s -D- http://127.0.0.1:18789/ | head -n 20
-10.2 Verificar que NO es REST (ejemplo)
+```
+
+### 10.2 Verificar que NO es REST (ejemplo)
+```bash
 curl -s -D- http://127.0.0.1:18789/health | head -n 20
+```
 
 Si devuelve HTML, es consistente con SPA.
 
-10.3 Verificar WebSocket (manual)
+### 10.3 Verificar WebSocket (manual)
 
 Para pruebas WS, lo ideal es usar websocat o un cliente WS.
 Si no está instalado:
 
-instalar websocat o usar un script Node/Python.
-(Se documenta en troubleshooting si se requiere.)
+- instalar websocat o usar un script Node/Python.
+- (Se documenta en troubleshooting si se requiere.)
 
-11) Implicaciones de diseño (para CloudCode)
+## 11) Implicaciones de diseño (para CloudCode)
 
 Si Mission Control necesita datos, lo más robusto es:
 
-conectarse por WS RPC y consumir status/health/sessions/cron/logs.
-
-Evitar suposiciones “REST first”.
-
-Centralizar auth (token/pairing) y mantener bind=loopback + proxy seguro.
+- conectarse por WS RPC y consumir status/health/sessions/cron/logs.
+- Evitar suposiciones “REST first”.
+- Centralizar auth (token/pairing) y mantener bind=loopback + proxy seguro.

@@ -1,4 +1,3 @@
-cat > docs/00-overview.md <<'EOF'
 # 00 — Overview (Nubo OpenClaw)
 
 Este repositorio documenta y organiza el ecosistema **Nubo + OpenClaw** tal como está implementado en el VPS `srv1364133` (usuario `moltbot`), y establece un blueprint replicable para futuros “departamentos” de agentes (ej. Marketing) con la misma lógica de orquestación.
@@ -61,6 +60,8 @@ Existe un agente `zenith` con:
 - agentDir (en disco),
 - binding en Telegram: **Telegram accountId `zenith` → agentId `zenith`**.
 
+> Para detalles sobre canales y bindings, ver [05-channels-telegram-slack.md](./05-channels-telegram-slack.md).
+
 Resultado:
 - El bot “Zenith” en Telegram es una puerta directa a la lógica del sistema.
 - Zenith opera dentro de los límites definidos por la configuración global (tools, sesiones, subagentes, etc.).
@@ -75,6 +76,8 @@ Importante:
 - HTTP sirve una SPA (“OpenClaw Control”).
 - rutas como `/health`, `/status`, `/api` pueden devolver **HTML** por ser SPA.
 - el estado real se obtiene por WS RPC (`health`, `status`, `agents.list`, etc.).
+
+> Para el contrato completo de autenticación y métodos RPC, ver [04-gateway-ws-rpc.md](./04-gateway-ws-rpc.md).
 
 ### 3.4 OpenClaw Control UI (SPA embebida)
 En el puerto del gateway se sirve una UI web embebida:
@@ -103,6 +106,8 @@ Además se configuró con env vars para:
 ---
 
 ## 4) Qué está “realmente” en disco (hallazgos clave)
+
+> Para detalles completos sobre workspaces y estado, ver [01-architecture.md](./01-architecture.md#3-workspaces-y-estado).
 
 ### 4.1 Config principal
 - `~/.openclaw/openclaw.json` (NO se sube al repo)
@@ -161,6 +166,8 @@ Todo esto vive en:
 
 ## 7) Seguridad (muy importante)
 
+> Para la guía completa de seguridad, rotación de credenciales y checklists, ver [08-security.md](./08-security.md).
+
 ### 7.1 No subir secretos
 Este repo debe incluir:
 - docs redactados,
@@ -200,5 +207,3 @@ Ver:
 - nginx: `listen 301` → proxy a 3010
 
 > Los valores exactos de tokens/keys NO se incluyen en el repo.
-
-EOF

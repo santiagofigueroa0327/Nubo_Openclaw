@@ -1,12 +1,12 @@
-## 07 — Deploy: systemd + nginx (VPS `srv1364133`)
+# 07 — Deploy: systemd + nginx (VPS `srv1364133`)
 
 > Objetivo: que OpenClaw Gateway y Mission Control corran **sin depender de la terminal**, reinicien solos, y estén expuestos de forma controlada (nginx).
 
 ---
 
-# 1) Componentes de deploy
+## 1) Componentes de deploy
 
-## 1.1 Servicios (systemd --user)
+### 1.1 Servicios (systemd --user)
 - **OpenClaw Gateway**
   - Unit: `~/.config/systemd/user/openclaw-gateway.service`
   - Runtime: Node ejecutando `openclaw ... gateway`
@@ -18,16 +18,16 @@
   - WorkingDir: `~/nubo-dashboard/mission-control-review`
   - Puerto: `3010`
 
-## 1.2 Reverse proxy (nginx)
+### 1.2 Reverse proxy (nginx)
 - Site: `/etc/nginx/sites-enabled/mission-control`
 - Escucha (observado): `listen 301;`
 - Proxy a: `http://127.0.0.1:3010`
 
 ---
 
-# 2) OpenClaw Gateway service (systemd)
+## 2) OpenClaw Gateway service (systemd)
 
-## 2.1 Archivo real
+### 2.1 Archivo real
 Ruta:
 - `~/.config/systemd/user/openclaw-gateway.service`
 
@@ -41,94 +41,97 @@ Contenido observado (resumen, sin secretos):
   - `OPENCLAW_SYSTEMD_UNIT=openclaw-gateway.service`
   - markers internos (`OPENCLAW_SERVICE_*`)
 
-## 2.2 Comandos operativos
+### 2.2 Comandos operativos
 Estado:
 ```bash
 systemctl --user status openclaw-gateway.service
+```
 
 Reiniciar:
 
+```bash
 systemctl --user restart openclaw-gateway.service
+```
 
 Logs:
 
+```bash
 journalctl --user -u openclaw-gateway.service -e | tail -n 200
+```
 
 Probar HTTP local:
 
+```bash
 curl -I http://127.0.0.1:18789/
+```
 
 Nota: /health y /status pueden devolver HTML (SPA). El control real es WS RPC.
 
-3) Mission Control service (systemd)
-3.1 Archivo real
+## 3) Mission Control service (systemd)
+
+### 3.1 Archivo real
 
 Ruta:
-
-~/.config/systemd/user/mission-control.service
+- `~/.config/systemd/user/mission-control.service`
 
 Resumen observado:
+- `Type=simple`
+- `WorkingDirectory=%h/nubo-dashboard/mission-control-review`
+- `Environment=NODE_ENV=production`
+- `Environment=PORT=3010`
+- `ExecStart=/usr/bin/env bash -lc 'npm run start -- --port 3010'`
+- `Restart=always`
+- `RestartSec=2`
 
-Type=simple
-
-WorkingDirectory=%h/nubo-dashboard/mission-control-review
-
-Environment=NODE_ENV=production
-
-Environment=PORT=3010
-
-ExecStart=/usr/bin/env bash -lc 'npm run start -- --port 3010'
-
-Restart=always
-
-RestartSec=2
-
-3.2 Override (recomendado para tuning)
+### 3.2 Override (recomendado para tuning)
 
 Ruta observada:
-
-~/.config/systemd/user/mission-control.service.d/override.conf
+- `~/.config/systemd/user/mission-control.service.d/override.conf`
 
 Variables típicas (conceptual):
+- `OPENCLAW_BIN=/home/moltbot/.npm-global/bin/openclaw`
+- `GATEWAY_READONLY=true`
+- `GATEWAY_POLL_SECONDS=30`
+- `GATEWAY_ACTIVE_MINUTES=120`
+- `GATEWAY_TASKS_LIMIT=80`
+- `GATEWAY_OPENCLAW_TIMEOUT_MS=5000`
 
-OPENCLAW_BIN=/home/moltbot/.npm-global/bin/openclaw
-
-GATEWAY_READONLY=true
-
-GATEWAY_POLL_SECONDS=30
-
-GATEWAY_ACTIVE_MINUTES=120
-
-GATEWAY_TASKS_LIMIT=80
-
-GATEWAY_OPENCLAW_TIMEOUT_MS=5000
-
-3.3 Comandos operativos
+### 3.3 Comandos operativos
 
 Estado:
 
+```bash
 systemctl --user status mission-control.service
+```
 
 Reiniciar:
 
+```bash
 systemctl --user restart mission-control.service
+```
 
 Logs:
 
+```bash
 journalctl --user -u mission-control.service -e | tail -n 200
+```
 
 Probar HTTP local:
 
+```bash
 curl -I http://127.0.0.1:3010
-4) nginx: reverse proxy para Mission Control
-4.1 Archivo real
+```
+
+## 4) nginx: reverse proxy para Mission Control
+
+### 4.1 Archivo real
 
 Ruta:
-
-/etc/nginx/sites-enabled/mission-control
+- `/etc/nginx/sites-enabled/mission-control`
 
 Contenido observado (resumen):
 
+```nginx
 server {
   listen 301;
   server_name _;
@@ -144,50 +147,59 @@ server {
     proxy_set_header Connection "upgrade";
   }
 }
-4.2 Validación y reload
+```
+
+### 4.2 Validación y reload
 
 Validar config:
 
+```bash
 sudo nginx -t
+```
 
 Reload:
 
+```bash
 sudo systemctl reload nginx
+```
 
 Probar proxy:
 
+```bash
 curl -I http://127.0.0.1:301
-5) “systemctl --user” y persistencia sin terminal
+```
+
+## 5) "systemctl --user" y persistencia sin terminal
 
 Si alguna vez ves errores tipo:
 
+```
 Failed to connect to bus: No medium found
+```
 
 Soluciones típicas:
 
-Asegurar que estás en sesión con systemd user activo (login normal).
+- Asegurar que estás en sesión con systemd user activo (login normal).
+- Habilitar linger para que servicios user sigan sin sesión interactiva:
 
-Habilitar linger para que servicios user sigan sin sesión interactiva:
-
+```bash
 sudo loginctl enable-linger moltbot
+```
 
 Luego:
 
+```bash
 systemctl --user daemon-reload
 systemctl --user enable --now openclaw-gateway.service
 systemctl --user enable --now mission-control.service
-6) Checklist de deploy (antes de darlo por listo)
+```
 
- openclaw-gateway.service activo y habilitado
+## 6) Checklist de deploy (antes de darlo por listo)
 
- mission-control.service activo y habilitado
-
- Gateway en loopback (127.0.0.1:18789)
-
- Mission Control en loopback (127.0.0.1:3010)
-
- nginx proxy funcionando (puerto 301 → 3010)
-
- .gitignore bloquea *.sqlite, .openclaw/, auth-profiles.json, .env
-
- Tokens/keys no están en el repo (buscar patrones: AIza, sk-, xoxb-, xapp-, botToken)
+- [ ] openclaw-gateway.service activo y habilitado
+- [ ] mission-control.service activo y habilitado
+- [ ] Gateway en loopback (127.0.0.1:18789)
+- [ ] Mission Control en loopback (127.0.0.1:3010)
+- [ ] nginx proxy funcionando (puerto 301 → 3010)
+- [ ] .gitignore bloquea *.sqlite, .openclaw/, auth-profiles.json, .env
+- [ ] Tokens/keys no están en el repo (buscar patrones: AIza, sk-, xoxb-, xapp-, botToken)

@@ -67,133 +67,119 @@ Estructura típica:
     "anthropic:default": { "lastUsed": 0, "errorCount": 0 }
   }
 }
-Campos clave
+```
 
-version: versión del formato (normalmente 1)
+### Campos clave
 
-profiles: mapa de perfiles
+- `version`: versión del formato (normalmente 1)
+- `profiles`: mapa de perfiles
+- `order`: preferencia por proveedor (muy importante si hay varios perfiles por el mismo proveedor)
+- `usageStats`: telemetría ligera local (para debugging)
 
-order: preferencia por proveedor (muy importante si hay varios perfiles por el mismo proveedor)
+## 4) Proveedores y modos (lo que significa en práctica)
 
-usageStats: telemetría ligera local (para debugging)
-
-4) Proveedores y modos (lo que significa en práctica)
-4.1 type: api_key
+### 4.1 type: api_key
 
 Normalmente se usa para proveedores como:
+- Google (Gemini)
+- Anthropic (Claude)
 
-Google (Gemini)
+Se guarda como `key`.
 
-Anthropic (Claude)
-
-Se guarda como key.
-
-4.2 type: token
+### 4.2 type: token
 
 Se usa para tokens de sesión / tokens especiales.
 
-Se guarda como token.
+Se guarda como `token`.
 
 En algunos casos puede quedar como placeholder si se canceló un wizard.
 
 Recomendación: mantener un solo método consistente por proveedor salvo que tengas una razón fuerte.
 
-5) Orden de preferencia (order)
+## 5) Orden de preferencia (order)
 
-El bloque order evita ambigüedades cuando hay múltiples perfiles:
+El bloque `order` evita ambigüedades cuando hay múltiples perfiles:
 
-"order": {
-  "anthropic": ["anthropic:default", "anthropic:manual"]
+```json
+“order”: {
+  “anthropic”: [“anthropic:default”, “anthropic:manual”]
 }
+```
 
 Interpretación:
-
-primero intenta anthropic:default,
-
-si falla, intenta anthropic:manual.
+- primero intenta `anthropic:default`,
+- si falla, intenta `anthropic:manual`.
 
 Buenas prácticas:
+- si tienes un perfil “principal” estable, déjalo primero.
+- si tienes un perfil “backup”, déjalo después.
+- evita 5 perfiles por proveedor si no necesitas complejidad.
 
-si tienes un perfil “principal” estable, déjalo primero.
+## 6) Seguridad y repositorio (lo más importante)
 
-si tienes un perfil “backup”, déjalo después.
-
-evita 5 perfiles por proveedor si no necesitas complejidad.
-
-6) Seguridad y repositorio (lo más importante)
-6.1 Nunca commitear este archivo real
+### 6.1 Nunca commitear este archivo real
 
 No se sube al repo:
-
-~/.openclaw/agents/*/agent/auth-profiles.json
+- `~/.openclaw/agents/*/agent/auth-profiles.json`
 
 En este repo solo:
+- documentación,
+- plantillas `.example` con REDACTED.
 
-documentación,
-
-plantillas .example con REDACTED.
-
-6.2 Qué hacer si ya se expuso una key/token
+### 6.2 Qué hacer si ya se expuso una key/token
 
 Si una key/token apareció en logs/chat/pantallazo:
+- rotar la credencial en el proveedor,
+- actualizar el runtime,
+- reiniciar servicios si aplica,
+- verificar que la credencial anterior está invalidada.
 
-rotar la credencial en el proveedor,
-
-actualizar el runtime,
-
-reiniciar servicios si aplica,
-
-verificar que la credencial anterior está invalidada.
-
-6.3 .gitignore recomendado
+### 6.3 .gitignore recomendado
 
 Asegúrate de tener reglas tipo:
+- `**/auth-profiles.json`
+- `.openclaw/`
+- `.env`
+- `*.sqlite`
 
-**/auth-profiles.json
+## 7) Operación: actualizar credenciales sin romper todo
 
-.openclaw/
+### 7.1 Actualización segura (manual)
 
-.env
+1. Editar el `auth-profiles.json` correspondiente (main/zenith):
+   - con cuidado de no romper JSON
 
-*.sqlite
+2. Validar JSON:
 
-7) Operación: actualizar credenciales sin romper todo
-7.1 Actualización segura (manual)
+   ```bash
+   python3 -m json.tool ~/.openclaw/agents/main/agent/auth-profiles.json >/dev/null && echo OK || echo BAD_JSON
+   ```
 
-editar el auth-profiles.json correspondiente (main/zenith):
+3. Reiniciar gateway si el runtime no recarga en caliente:
 
-con cuidado de no romper JSON
+   ```bash
+   systemctl --user restart openclaw-gateway.service
+   ```
 
-validar JSON:
+4. Confirmar actividad en logs:
 
-python3 -m json.tool ~/.openclaw/agents/main/agent/auth-profiles.json >/dev/null && echo OK || echo BAD_JSON
-
-reiniciar gateway si el runtime no recarga en caliente:
-
-systemctl --user restart openclaw-gateway.service
-
-confirmar actividad en logs:
-
-journalctl --user -u openclaw-gateway.service -e | tail -n 80
+   ```bash
+   journalctl --user -u openclaw-gateway.service -e | tail -n 80
+   ```
 
 Nota: algunos runtimes cachean credenciales; un restart suele ser lo más seguro.
 
-8) Plantilla para el repo
+## 8) Plantilla para el repo
 
 Ver:
-
-examples/auth-profiles.example.json
+- `examples/auth-profiles.example.json`
 
 Ese archivo debe contener solo placeholders.
 
-9) Checklist rápido
+## 9) Checklist rápido
 
- No hay secrets en el repo (search: AIza, sk-, xoxb-, xapp-, botToken)
-
- .gitignore bloquea auth-profiles.json
-
- order es consistente por proveedor
-
- JSON válido (python json.tool)
-
- Servicios reiniciados si aplica
+- No hay secrets en el repo (search: `AIza`, `sk-`, `xoxb-`, `xapp-`, `botToken`)
+- `.gitignore` bloquea `auth-profiles.json`
+- `order` es consistente por proveedor
+- JSON válido (`python json.tool`)
+- Servicios reiniciados si aplica
