@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(data[0][''text'']\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(data[0][''text''][:15000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(data[0][''text''][15000:30000]\\)\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(data[0][''text''][30000:]\\)\")",
+      "Bash(npx create-next-app@latest . --typescript --eslint --tailwind --app --src-dir --import-alias \"@/*\" --yes)",
+      "Bash(npx create-next-app@latest mission-control --typescript --eslint --tailwind --app --src-dir --import-alias \"@/*\" --yes)",
+      "Bash(npm install framer-motion better-sqlite3)",
+      "Bash(npm install -D @types/better-sqlite3)",
+      "Bash(npm run build)",
+      "Bash(curl -s -X POST http://localhost:3010/api/seed)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://localhost:3010/api/tasks)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f''Total: {d[\"\"total\"\"]} tasks''\\); [print\\(f''  [{t[\"\"status\"\"]}] {t[\"\"title\"\"][:50]}''\\) for t in d[''tasks''][:5]]\")",
+      "Bash(curl -s http://localhost:3010/api/agents)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f''  {a[\"\"agentId\"\"]}: {a[\"\"role\"\"]} \\({len\\(a[\"\"capabilities\"\"]\\)} caps\\)''\\) for a in d[''agents'']]\")",
+      "Bash(curl -s \"http://localhost:3010/api/tasks?status=running\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f''  {d[\"\"total\"\"]} running tasks''\\)\")",
+      "Bash(curl -s \"http://localhost:3010/api/tasks/nonexistent\")",
+      "Bash(pkill -f \"next dev\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+# systemd user service for Mission Control
+# Install: mkdir -p ~/.config/systemd/user
+#          cp mission-control.service ~/.config/systemd/user/
+#          systemctl --user daemon-reload
+#          systemctl --user enable --now mission-control
+
+[Unit]
+Description=Mission Control Dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Mission control
+ExecStart=/usr/bin/node node_modules/.bin/next start -p 3010
+Environment=NODE_ENV=production
+Environment=DB_PATH=./data/dashboard.sqlite
+Environment=GATEWAY_READONLY=false
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
