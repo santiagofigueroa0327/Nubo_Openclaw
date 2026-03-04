@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getDb } from "@/lib/db";
 import type { TaskRow } from "@/lib/types";
 import { TasksPageClient } from "./tasks-page-client";

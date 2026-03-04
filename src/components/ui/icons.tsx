@@ -120,3 +120,36 @@ export function DatabaseIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ListIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <line x1={8} y1={6} x2={21} y2={6} />
+      <line x1={8} y1={12} x2={21} y2={12} />
+      <line x1={8} y1={18} x2={21} y2={18} />
+      <line x1={3} y1={6} x2={3.01} y2={6} />
+      <line x1={3} y1={12} x2={3.01} y2={12} />
+      <line x1={3} y1={18} x2={3.01} y2={18} />
+    </svg>
+  );
+}
+
+export function KanbanIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x={3} y={3} width={5} height={11} rx={1} />
+      <rect x={9.5} y={3} width={5} height={7} rx={1} />
+      <rect x={16} y={3} width={5} height={14} rx={1} />
+    </svg>
+  );
+}
+
+export function SaveIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+      <path d="M17 21v-8H7v8" />
+      <path d="M7 3v4a2 2 0 002 2h4a2 2 0 002-2V3" />
+    </svg>
+  );
+}

@@ -64,6 +64,13 @@ function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_receivedAt ON tasks(receivedAt);
   `);
+
+  // Migrations: add new columns if not present
+  try {
+    db.exec(`ALTER TABLE agents_registry ADD COLUMN description TEXT NOT NULL DEFAULT ''`);
+  } catch {
+    // column already exists – ignore
+  }
 }
 
 export function getDb(): Database.Database {

@@ -43,7 +43,7 @@ export function TaskDetailClient({
         <div className="space-y-6">
           <div className="rounded-xl border border-border bg-surface/30 p-5">
             <h3 className="text-sm font-semibold text-text mb-4">Logs</h3>
-            <LogsPanel logs={logs} />
+            <LogsPanel logs={logs} taskId={task.id} />
           </div>
 
           <div className="rounded-xl border border-border bg-surface/30 p-5">

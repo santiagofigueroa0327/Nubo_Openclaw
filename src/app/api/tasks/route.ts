@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
       conditions.push("primaryAgent = ?");
       params.push(agent);
     }
+    const model = url.searchParams.get("model");
+    if (model) {
+      conditions.push("model = ?");
+      params.push(model);
+    }
 
     const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
     const tasks = db

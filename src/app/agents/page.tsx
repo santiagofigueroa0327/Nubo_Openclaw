@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getDb } from "@/lib/db";
 import type { AgentRow } from "@/lib/types";
 import { AgentsPageClient } from "./agents-page-client";
@@ -9,6 +11,7 @@ function parseAgent(row: AgentRow) {
     capabilities: JSON.parse(row.capabilitiesJson || "[]") as string[],
     enabled: row.enabled === 1,
     defaultModelPolicy: row.defaultModelPolicy,
+    description: row.description ?? "",
   };
 }
 

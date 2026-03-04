@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { formatTimestamp } from "@/lib/utils";
@@ -58,6 +58,12 @@ export function LogViewer({ initialLogs }: { initialLogs: GlobalLog[] }) {
     }
   }, []);
 
+  // Auto-refresh every 30s
+  useEffect(() => {
+    const id = setInterval(refresh, 30_000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -103,7 +109,7 @@ export function LogViewer({ initialLogs }: { initialLogs: GlobalLog[] }) {
         </button>
       </div>
 
-      <div className="rounded-xl border border-border bg-bg/50 max-h-[calc(100vh-240px)] overflow-y-auto font-mono text-xs">
+      <div className="rounded-xl border border-border bg-bg/50 h-[500px] overflow-y-scroll font-mono text-xs">
         {filtered.length === 0 ? (
           <p className="py-12 text-center text-muted">No logs match filters</p>
         ) : (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { formatTimestamp } from "@/lib/utils";
+import { RefreshIcon } from "@/components/ui/icons";
 import type { TaskLogRow, LogLevel } from "@/lib/types";
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -21,9 +22,30 @@ const LEVEL_BG: Record<string, string> = {
 
 const LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 
-export function LogsPanel({ logs }: { logs: TaskLogRow[] }) {
+export function LogsPanel({ logs: initialLogs, taskId }: { logs: TaskLogRow[]; taskId: string }) {
+  const [logs, setLogs] = useState<TaskLogRow[]>(initialLogs);
   const [levelFilter, setLevelFilter] = useState<LogLevel | "all">("all");
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/logs?limit=200`);
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(data.logs ?? []);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [taskId]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    const id = setInterval(refresh, 30_000);
+    return () => clearInterval(id);
+  }, [refresh]);
 
   const filtered = useMemo(() => {
     return logs.filter((log) => {
@@ -36,7 +58,8 @@ export function LogsPanel({ logs }: { logs: TaskLogRow[] }) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
         <div className="flex gap-1 p-0.5 bg-bg2/30 rounded-md">
           <button
             onClick={() => setLevelFilter("all")}
@@ -67,9 +90,17 @@ export function LogsPanel({ logs }: { logs: TaskLogRow[] }) {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-2 py-1 text-xs bg-bg2/30 border border-border rounded text-text placeholder:text-muted/50 focus:outline-none focus:border-accent-cyan/30"
         />
+        </div>
+        <button
+          onClick={refresh}
+          disabled={isLoading}
+          className="flex items-center gap-1 px-2 py-1 text-xs bg-bg2/60 border border-border rounded-lg text-muted hover:text-text transition-colors disabled:opacity-50 shrink-0"
+        >
+          <RefreshIcon className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
-      <div className="rounded-lg border border-border bg-bg/50 max-h-80 overflow-y-auto font-mono text-xs">
+      <div className="rounded-lg border border-border bg-bg/50 h-[500px] overflow-y-scroll font-mono text-xs">
         {filtered.length === 0 ? (
           <p className="py-6 text-center text-muted text-xs">No logs match filters</p>
         ) : (

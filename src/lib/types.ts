@@ -58,6 +58,7 @@ export interface AgentRow {
   capabilitiesJson: string;
   enabled: number;
   defaultModelPolicy: string;
+  description: string;
 }
 
 // === API Response Types (parsed) ===
@@ -75,6 +76,14 @@ export interface TaskLog extends Omit<TaskLogRow, "metaJson"> {
 export interface Agent extends Omit<AgentRow, "capabilitiesJson" | "enabled"> {
   capabilities: string[];
   enabled: boolean;
+}
+
+// Extended agent with openclaw.json data
+export interface AgentConfig extends Agent {
+  model: string;
+  fallbacks: string[];
+  tools: { allow: string[]; deny: string[] };
+  skills: string[];
 }
 
 // === API Error ===

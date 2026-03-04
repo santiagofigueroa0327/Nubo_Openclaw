@@ -11,6 +11,7 @@ function parseAgent(row: AgentRow) {
     capabilities: JSON.parse(row.capabilitiesJson || "[]") as string[],
     enabled: row.enabled === 1,
     defaultModelPolicy: row.defaultModelPolicy,
+    description: row.description ?? "",
   };
 }
 
