@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
       path: "/api/tasks",
       durationMs: Date.now() - start,
     });
-    return NextResponse.json({ tasks, total });
+    return NextResponse.json(
+      { tasks, total },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
+    );
   } catch (err) {
     logger.error("Failed to list tasks", { requestId, message: String(err) });
     return NextResponse.json(

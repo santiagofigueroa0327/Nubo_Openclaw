@@ -71,7 +71,7 @@ export function TasksPageClient({
 
   // Fetch agent list once on mount
   useEffect(() => {
-    fetch("/api/agents")
+    fetch("/api/agents", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d.agents))
@@ -116,7 +116,8 @@ export function TasksPageClient({
       // Fetch up to 200 rows when a status filter is active (client-side filter)
       params.set("limit", active.statuses.length > 0 ? "200" : "50");
 
-      const res = await fetch(`/api/tasks?${params}`);
+      params.set("_t", String(Date.now()));
+      const res = await fetch(`/api/tasks?${params}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -133,11 +134,77 @@ export function TasksPageClient({
     }
   }, []);
 
-  // Auto-refresh every 30 s
+  // SSE: subscribe to realtime task updates, with fallback polling every 5s
   useEffect(() => {
-    const id = setInterval(() => fetchTasks(), 30_000);
-    return () => clearInterval(id);
-  }, [fetchTasks]);
+    let es: EventSource | null = null;
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+    let sseConnected = false;
+
+    try {
+      es = new EventSource("/api/tasks/stream");
+
+      es.onopen = () => {
+        sseConnected = true;
+        // Clear fallback if SSE connects
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval);
+          fallbackInterval = null;
+        }
+      };
+
+      es.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (Array.isArray(payload.tasks) && payload.tasks.length > 0) {
+            // Merge updated tasks into current state
+            setTasks((prev) => {
+              const map = new Map(prev.map((t) => [t.id, t]));
+              for (const updated of payload.tasks) {
+                map.set(updated.id, updated);
+              }
+              // Re-sort by receivedAt desc and apply status filter
+              const merged = Array.from(map.values()).sort(
+                (a, b) => b.receivedAt - a.receivedAt
+              );
+              const active = filtersRef.current;
+              return active.statuses.length > 0
+                ? merged.filter((t) => active.statuses.includes(t.status))
+                : merged;
+            });
+            setTotal((prev) => {
+              // Approximate: if new tasks appeared, bump total
+              const newIds = payload.tasks.filter(
+                (t: TaskRow) => !tasks.find((x) => x.id === t.id)
+              );
+              return prev + newIds.length;
+            });
+          }
+        } catch {
+          // ignore malformed SSE data
+        }
+      };
+
+      es.onerror = () => {
+        sseConnected = false;
+        // Start fallback polling when SSE disconnects
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(() => fetchTasks(), 5_000);
+        }
+      };
+    } catch {
+      // SSE not available, use polling
+    }
+
+    // Always start fallback polling; SSE onopen will clear it
+    if (!sseConnected) {
+      fallbackInterval = setInterval(() => fetchTasks(), 5_000);
+    }
+
+    return () => {
+      if (es) { es.close(); }
+      if (fallbackInterval) { clearInterval(fallbackInterval); }
+    };
+  }, [fetchTasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filter helpers ────────────────────────────────────────────────────────────
 

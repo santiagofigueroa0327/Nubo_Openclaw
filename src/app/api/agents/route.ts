@@ -24,7 +24,10 @@ export async function GET() {
     const agents = rows.map(parseAgent);
 
     logger.info("Agents listed", { requestId, method: "GET", path: "/api/agents" });
-    return NextResponse.json({ agents });
+    return NextResponse.json(
+      { agents },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
+    );
   } catch (err) {
     logger.error("Failed to list agents", { requestId, message: String(err) });
     return NextResponse.json(

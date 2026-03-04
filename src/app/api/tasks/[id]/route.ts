@@ -24,7 +24,9 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(task);
+    return NextResponse.json(task, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" },
+    });
   } catch (err) {
     logger.error("Failed to get task", { requestId, message: String(err) });
     return NextResponse.json(
