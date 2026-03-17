@@ -19,7 +19,7 @@ export function SummaryHeader({ task }: { task: TaskRow }) {
             <StatusBadge status={task.status} />
             <span className="text-xs text-muted font-mono">{task.id.slice(0, 8)}</span>
           </div>
-          <h2 className="text-lg font-semibold text-text truncate">{task.title}</h2>
+          <h2 className="text-base md:text-lg font-semibold text-text break-words line-clamp-3 md:line-clamp-2">{task.title}</h2>
         </div>
       </div>
 
