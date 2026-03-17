@@ -3,6 +3,52 @@
 
 ---
 
+## 2026-03-17 (pass 2) — Cloud Code: system audit, memory corrections, untracked file discovery
+**Request**: Reinforce Zenith configuration, extend memory with real system findings.
+**Agent**: Cloud Code (configuring Zenith)
+
+### What was discovered
+1. **Untracked source files in build** (UNTRACKED-001):
+   - `src/lib/stagnation.ts` — untracked but ACTIVE (runs every 60s, confirmed via journalctl)
+   - `src/lib/gateway-sync.ts` — untracked, disabled
+   - `src/lib/instrumentation.ts` — untracked, dead file under lib/
+   - `src/components/task-drawer.tsx` — untracked, 541 lines, NOT wired (MC v2 orphan)
+   - `src/components/connection-indicator.tsx` — untracked, NOT wired
+   - `MC_V2_REPORT.md` — untracked, describes drawer approach that was implemented but not connected
+
+2. **Task navigation model confirmed**: `router.push` to `/tasks/<taskId>` full page. Drawer is NOT active.
+
+3. **Sidebar nav confirmed**: Tasks / Agents / Logs (Phase 0). Missions route exists but not in nav.
+
+4. **Stagnation checker confirmed running**: every 60s, `archived=14 stuck=2 noActivity=90`
+
+### Memory files updated
+| File | What changed |
+|------|-------------|
+| `01-system-map.md` | Added untracked file table; updated component annotations |
+| `03-mission-control.md` | Full rewrite: correct layout structure, navigation model, untracked file section, component table with git/active status |
+| `04-task-patterns.md` | Added pre-edit checklist, SSH validation table, expanded failure modes |
+| `05-known-issues.md` | Added UNTRACKED-001, MC-V2-ORPHANED, MISSIONS-NAV-001; updated status on resolved issues |
+| `06-change-log.md` | This entry |
+| `00-index.md` | Will be updated in this pass |
+
+### No code changes
+This pass was documentation and memory only. No source files were modified.
+
+### Validation
+- All 3 services confirmed active
+- `/api/health` → 200, healthy, taskCount 325, notificationCount 3
+- `git status` run to confirm tracked vs untracked file state
+- journalctl confirmed stagnation is running
+
+### Open items for Zenith to track
+- UNTRACKED-001: stagnation.ts should be committed before any `git clean` operation
+- MC-V2-ORPHANED: drawer must be deliberately wired or removed
+- AUTH-001: no auth on any API route
+- MOBILE-002: board mode still scrolls horizontally
+
+---
+
 ## 2026-03-17 — Cloud Code configuration pass + Mobile responsive (benchmark task)
 **Request**: Configure Zenith with persistent markdown memory and fix Mission Control mobile responsiveness.
 **Agent**: Cloud Code (configuring Zenith)

@@ -1,5 +1,5 @@
 # Zenith Memory — Task Patterns
-> Last updated: 2026-03-17 by Cloud Code
+> Last updated: 2026-03-17 pass 2 by Cloud Code
 
 ## Mandatory first output for every task
 Zenith must ALWAYS emit this block as the absolute first response, before analysis, before code:
@@ -82,12 +82,50 @@ systemctl --user is-active agentos-sync.service
 - Do not wait for full analysis before emitting the status block
 - Treat missing initial status as a workflow failure
 
+## Pre-edit checklist for Mission Control source files
+Before editing ANYTHING in `src/`:
+```bash
+# 1. Check if the file is tracked
+git status --short src/path/to/file.tsx
+
+# 2. If untracked — confirm it's the right file and note it in the change log
+# 3. Never assume a file is committed just because it exists
+# 4. git diff will NOT show untracked changes — use git status + file inspection
+```
+
+Active untracked files that affect the running app:
+- `src/lib/stagnation.ts` — DO NOT DELETE
+- `src/lib/gateway-sync.ts` — disabled, keep as-is unless reactivating
+- `src/components/task-drawer.tsx` — orphaned v2 code, not wired
+- `src/components/connection-indicator.tsx` — orphaned v2 code, not wired
+
+## Validation: what SSH can vs cannot confirm
+Zenith must be explicit about this distinction:
+
+| Validation type | SSH available? | How to check |
+|----------------|---------------|-------------|
+| TypeScript build | ✅ | `npm run build` |
+| HTTP route 200 | ✅ | `curl -s http://127.0.0.1:3010/path` |
+| API JSON response | ✅ | `curl -s .../api/health \| python3 -m json.tool` |
+| Service health | ✅ | `systemctl --user is-active <service>` |
+| Compiled classes in bundle | ✅ | `grep -r "class-name" .next/ --include="*.js" -l` |
+| Visual mobile rendering | ❌ | No browser via SSH — state limitation explicitly |
+| Drawer animation smoothness | ❌ | No browser via SSH |
+| Touch interaction | ❌ | No browser via SSH |
+
+**Rule**: If a validation cannot be done via SSH, Zenith must say so explicitly. Never claim visual/browser validation was performed if only SSH checks were run.
+
 ## Typical failure modes to avoid
 | Failure | Correct behavior |
 |---------|----------------|
 | Starting work silently | Always emit status block first |
 | Using dashboard root as task link | Find and use `/tasks/<taskId>` |
+| Using `?id=` as a deep-link | Use `/tasks/<taskId>` path — see DEEPLINK-001 |
 | Assuming file structure | Read actual files before editing |
 | Claiming completion without validation | Always validate with real check |
 | Editing wrong file path | Verify path exists before editing |
 | Breaking build with TypeScript errors | `npm run build` before marking done |
+| Claiming visual validation via SSH | State the limitation explicitly |
+| Editing untracked file without noting it | Always note in change log |
+| Deleting stagnation.ts | It is active — do NOT delete |
+| Assuming task-drawer.tsx is wired | It is not — verify imports before assuming |
