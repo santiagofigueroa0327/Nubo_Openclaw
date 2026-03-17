@@ -63,13 +63,39 @@ function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_task_logs_ts ON task_logs(ts);
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_receivedAt ON tasks(receivedAt);
+
+    -- Notification state: tracks Telegram message lifecycle per task
+    CREATE TABLE IF NOT EXISTS notification_state (
+      taskId TEXT PRIMARY KEY,
+      missionId TEXT,
+      jobId TEXT,
+      channel TEXT NOT NULL DEFAULT 'telegram',
+      chatId TEXT,
+      messageId TEXT,
+      lastStatus TEXT NOT NULL DEFAULT 'pending',
+      deliveredFinal INTEGER NOT NULL DEFAULT 0,
+      deliveredAt INTEGER,
+      lastEditAt INTEGER,
+      lastError TEXT,
+      mcLink TEXT,
+      retryCount INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notification_state_missionId ON notification_state(missionId);
+    CREATE INDEX IF NOT EXISTS idx_notification_state_deliveredFinal ON notification_state(deliveredFinal);
   `);
 
   // Migrations: add new columns if not present
-  try {
-    db.exec(`ALTER TABLE agents_registry ADD COLUMN description TEXT NOT NULL DEFAULT ''`);
-  } catch {
-    // column already exists – ignore
+  const migrations = [
+    `ALTER TABLE agents_registry ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE tasks ADD COLUMN archivedAt INTEGER`,
+    `ALTER TABLE tasks ADD COLUMN stuckReason TEXT`,
+  ];
+  for (const sql of migrations) {
+    try { db.exec(sql); } catch { /* column already exists */ }
   }
 }
 

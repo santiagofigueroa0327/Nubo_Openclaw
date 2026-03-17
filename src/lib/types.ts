@@ -2,7 +2,7 @@
 export type TaskStatus = "queued" | "running" | "completed" | "blocked" | "failed";
 
 // === Source Channels ===
-export type SourceChannel = "slack" | "api" | "github" | "manual" | "email";
+export type SourceChannel = "slack" | "api" | "github" | "manual" | "email" | "telegram" | "cron" | "agent";
 
 // === Log Levels ===
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -32,6 +32,51 @@ export interface TaskRow {
   updatedAt: number;
   finalOutput: string | null;
   errorSummary: string | null;
+  // AgentOS fields (added by agentos-sync)
+  archivedAt: number | null;
+  stuckReason: string | null;
+  agentosId: string | null;
+  agentosStatus: string | null;
+  workflowStep: string | null;
+  validationScore: number | null;
+  validationVerdict: string | null;
+  retryCount: number | null;
+  jobCount: number | null;
+}
+
+export interface NotificationStateRow {
+  taskId: string;
+  missionId: string | null;
+  jobId: string | null;
+  channel: string;
+  chatId: string | null;
+  messageId: string | null;
+  lastStatus: string;
+  deliveredFinal: number;
+  deliveredAt: number | null;
+  lastEditAt: number | null;
+  lastError: string | null;
+  mcLink: string | null;
+  retryCount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AgentOSJob {
+  jobId: string;
+  taskId: string;
+  missionId: string;
+  agentId: string;
+  status: string;
+  jobDir: string;
+  retryCount: number;
+  validationVerdict: string | null;
+  validationScore: number | null;
+  workflowStep?: string | null;
+  dispatchedAt: number | null;
+  completedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface EventRow {
