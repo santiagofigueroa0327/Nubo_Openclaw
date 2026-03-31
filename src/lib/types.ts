@@ -1,5 +1,17 @@
 // === Task Status (drives state machine) ===
-export type TaskStatus = "queued" | "running" | "completed" | "blocked" | "failed";
+export type TaskStatus =
+  | "queued"       // legacy — kept for compatibility
+  | "planning"     // AgentOS v2: Nubo is planning before dispatch
+  | "dispatched"   // AgentOS v2: job created, waiting for sessions_spawn
+  | "running"      // active worker session
+  | "stale_retry"  // AgentOS v2: stale heartbeat, auto-retry triggered
+  | "handoff"      // AgentOS v2: worker passed to next agent
+  | "completed"    // legacy — kept for compatibility
+  | "done"         // AgentOS v2: terminal success
+  | "blocked"      // legacy — kept for compatibility
+  | "failed"       // terminal failure
+  | "archived"     // soft-deleted / moved to history
+  | "cancelled";   // AgentOS v2: cancelled by user or system
 
 // === Source Channels ===
 export type SourceChannel = "slack" | "api" | "github" | "manual" | "email" | "telegram" | "cron" | "agent";

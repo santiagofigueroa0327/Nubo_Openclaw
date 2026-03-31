@@ -30,8 +30,10 @@ export async function GET() {
         try {
           const db = getDb();
           const now = Date.now();
+          // Exclude archived tasks from live updates — archived tasks are fetched
+          // explicitly via GET /api/tasks?status=archived, not streamed here.
           const updated = db
-            .prepare("SELECT * FROM tasks WHERE updatedAt > ? ORDER BY updatedAt ASC")
+            .prepare("SELECT * FROM tasks WHERE updatedAt > ? AND archivedAt IS NULL ORDER BY updatedAt ASC")
             .all(lastCheckedAt);
 
           if (updated.length > 0) {

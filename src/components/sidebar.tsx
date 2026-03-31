@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { TasksIcon, AgentsIcon, LogsIcon, XIcon } from "./ui/icons";
+import { DashboardIcon, TasksIcon, AgentsIcon, LogsIcon, CronIcon, XIcon, SkillsIcon, MetricsIcon } from "./ui/icons";
 import type { SVGProps } from "react";
 
 const NAV_ITEMS: {
@@ -11,9 +11,13 @@ const NAV_ITEMS: {
   label: string;
   icon: (props: SVGProps<SVGSVGElement>) => React.ReactElement;
 }[] = [
+  { href: "/", label: "Dashboard", icon: DashboardIcon },
   { href: "/tasks", label: "Tasks", icon: TasksIcon },
   { href: "/agents", label: "Agents", icon: AgentsIcon },
   { href: "/logs", label: "Logs", icon: LogsIcon },
+  { href: "/cron", label: "Cron Jobs", icon: CronIcon },
+  { href: "/skills", label: "Skills", icon: SkillsIcon },
+  { href: "/metrics", label: "Metrics", icon: MetricsIcon },
 ];
 
 function SidebarContent({
@@ -55,7 +59,9 @@ function SidebarContent({
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = item.href === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href} onClick={onClose}>
               <motion.div

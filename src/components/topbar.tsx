@@ -4,9 +4,13 @@ import { usePathname } from "next/navigation";
 import { SearchIcon, UserIcon, MenuIcon } from "./ui/icons";
 
 const PAGE_TITLES: Record<string, string> = {
+  "/": "Dashboard",
   "/tasks": "Tasks",
   "/agents": "Agents",
   "/logs": "Logs",
+  "/cron": "Cron Jobs",
+  "/skills": "Skills",
+  "/metrics": "Metrics",
 };
 
 function getPageTitle(pathname: string): string {

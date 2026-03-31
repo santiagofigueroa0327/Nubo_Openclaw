@@ -6,10 +6,11 @@ import { TasksPageClient } from "./tasks-page-client";
 
 export default function TasksPage() {
   const db = getDb();
+  // Default view: exclude archived tasks (they are fetched explicitly via filter)
   const tasks = db
-    .prepare("SELECT * FROM tasks ORDER BY receivedAt DESC LIMIT 50")
+    .prepare("SELECT * FROM tasks WHERE archivedAt IS NULL ORDER BY receivedAt DESC LIMIT 50")
     .all() as TaskRow[];
-  const { total } = db.prepare("SELECT COUNT(*) as total FROM tasks").get() as {
+  const { total } = db.prepare("SELECT COUNT(*) as total FROM tasks WHERE archivedAt IS NULL").get() as {
     total: number;
   };
 

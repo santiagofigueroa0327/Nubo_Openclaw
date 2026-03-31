@@ -17,6 +17,7 @@ const ALL_STATUSES: TaskStatus[] = [
   "blocked",
   "completed",
   "failed",
+  "archived",
 ];
 
 interface Filters {
@@ -107,28 +108,46 @@ export function TasksPageClient({
     setIsLoading(true);
     try {
       const active = f ?? filtersRef.current;
-      const params = new URLSearchParams();
+      const wantsArchived = active.statuses.includes("archived");
+      const nonArchivedStatuses = active.statuses.filter((s) => s !== "archived");
 
-      // Agent and model go to the server; status is filtered client-side
-      // (supports multi-select without needing API changes for arrays)
-      if (active.agent) params.set("agent", active.agent);
-      if (active.model) params.set("model", active.model);
-      // Fetch up to 200 rows when a status filter is active (client-side filter)
-      params.set("limit", active.statuses.length > 0 ? "200" : "50");
+      let allRows: TaskRow[] = [];
 
-      params.set("_t", String(Date.now()));
-      const res = await fetch(`/api/tasks?${params}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      // "archived" requires a dedicated API call (archivedAt IS NOT NULL query)
+      if (wantsArchived) {
+        const p = new URLSearchParams({ status: "archived", limit: "200", _t: String(Date.now()) });
+        if (active.agent) p.set("agent", active.agent);
+        if (active.model) p.set("model", active.model);
+        const res = await fetch(`/api/tasks?${p}`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          allRows = [...allRows, ...(data.tasks as TaskRow[])];
+        }
+      }
 
-      const rows: TaskRow[] = data.tasks;
-      const filtered =
-        active.statuses.length > 0
-          ? rows.filter((t) => active.statuses.includes(t.status))
-          : rows;
+      // Fetch active (non-archived) tasks when needed
+      if (!wantsArchived || nonArchivedStatuses.length > 0) {
+        const p = new URLSearchParams({ _t: String(Date.now()) });
+        if (nonArchivedStatuses.length === 1) p.set("status", nonArchivedStatuses[0]);
+        if (active.agent) p.set("agent", active.agent);
+        if (active.model) p.set("model", active.model);
+        p.set("limit", nonArchivedStatuses.length > 0 ? "200" : "50");
+        const res = await fetch(`/api/tasks?${p}`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          const rows: TaskRow[] = data.tasks;
+          // Client-side multi-status filter (e.g. running + blocked selected)
+          const filtered = nonArchivedStatuses.length > 1
+            ? rows.filter((t) => (nonArchivedStatuses as TaskStatus[]).includes(t.status))
+            : rows;
+          if (!wantsArchived) setTotal(nonArchivedStatuses.length > 1 ? filtered.length : data.total);
+          allRows = [...allRows, ...filtered];
+        }
+      }
 
-      setTasks(filtered);
-      setTotal(active.statuses.length > 0 ? filtered.length : data.total);
+      if (wantsArchived) setTotal(allRows.length);
+      allRows.sort((a, b) => b.receivedAt - a.receivedAt);
+      setTasks(allRows);
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +260,9 @@ export function TasksPageClient({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-text">Tasks</h1>
+          {filters.statuses.includes("archived") && (
           <p className="text-sm text-muted mt-0.5">{total} total tasks</p>
+        )}
         </div>
 
         {/* Controls: Filters · List/Board · Refresh */}

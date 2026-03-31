@@ -19,10 +19,19 @@ export async function GET(request: NextRequest) {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
-    if (status) {
-      conditions.push("status = ?");
-      params.push(status);
+    // "archived" is not a status value — it's indicated by archivedAt IS NOT NULL.
+    // Any other status filter implicitly excludes archived tasks (archivedAt IS NULL).
+    if (status === "archived") {
+      conditions.push("archivedAt IS NOT NULL");
+    } else {
+      // Default: never show archived tasks unless explicitly requested
+      conditions.push("archivedAt IS NULL");
+      if (status) {
+        conditions.push("status = ?");
+        params.push(status);
+      }
     }
+
     if (agent) {
       conditions.push("primaryAgent = ?");
       params.push(agent);
@@ -33,7 +42,7 @@ export async function GET(request: NextRequest) {
       params.push(model);
     }
 
-    const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+    const where = ` WHERE ${conditions.join(" AND ")}`;
     const tasks = db
       .prepare(`SELECT * FROM tasks${where} ORDER BY receivedAt DESC LIMIT ? OFFSET ?`)
       .all(...params, limit, offset);
