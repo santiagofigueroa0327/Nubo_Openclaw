@@ -1,6 +1,6 @@
 # 18 — Skills System (Estado actual: Marzo 2026)
 
-> Skills son capacidades adicionales que los agentes pueden usar. Flux es el especialista en skills.
+> Skills son capacidades adicionales que los agentes pueden usar. Flux es el especialista en skills. Proceso de gobernanza: `docs/SKILL_LIFECYCLE.md`.
 
 ---
 
@@ -12,7 +12,9 @@ OpenClaw inyecta skills relevantes en el contexto del agente cuando están activ
 
 ---
 
-## Skills instalados (29 total)
+## Skills instalados (32 total — 31 Nubo workspace + 1 Atlas workspace)
+
+> **P5 — Consolidación (2026-03-31):** Se añadieron 3 skills: `creative-thinking` (ex-Spark→Atlas), `qc-check` (ex-Sentinel→Nubo), `assembly` (ex-Aegis→Nubo).
 
 ### Skills de APIs externas
 
@@ -75,6 +77,17 @@ OpenClaw inyecta skills relevantes en el contexto del agente cuando están activ
 |------|-------------|
 | `task-router` | Routing inteligente de tareas a agentes |
 | `maton-patterns` | Patrones para usar Maton API gateway |
+| `delegation-protocol` | Protocolo de delegación Nubo→agentes (P3) |
+
+### Skills de agentes consolidados (P5 — 2026-03-31)
+
+Estas skills contienen el contenido operativo íntegro de los agentes eliminados.
+
+| Slug | Workspace | Ejecutado por | Origen | Descripción |
+|------|-----------|---------------|--------|-------------|
+| `creative-thinking` | workspace-atlas | Atlas | ex-Spark | Brainstorming con SCAMPER, Six Hats, 5 Whys, Jobs to Be Done. Ideas rankeadas por factibilidad × impacto. |
+| `qc-check` | workspace (Nubo) | Nubo | ex-Sentinel | Validación QA: 5 criterios ponderados, validation.json, repair loop. PASS ≥70 + security!=FAIL. |
+| `assembly` | workspace (Nubo) | Nubo | ex-Aegis | Ensamblaje final: 3 templates Telegram, flujo 10 pasos, Spanish Output Gate. |
 
 ---
 

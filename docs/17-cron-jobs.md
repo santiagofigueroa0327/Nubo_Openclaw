@@ -1,23 +1,24 @@
 # 17 — Cron Jobs (Inventario Actual: Marzo 2026)
 
-> Última actualización: 2026-03-31. Todos los jobs usan TZ=America/Bogota.
+> Última actualización: 2026-03-31 (P6 — Governance). 9 jobs activos + 1 DEPRECATED. Ver proceso de gobernanza en `docs/CRON_LIFECYCLE.md`.
 
 ---
 
 ## Inventario completo
 
-| ID (primeros 8) | Nombre | Schedule | Modelo | Tipo |
-|-----------------|--------|----------|--------|------|
-| `989b2ef7` | Daily Auto-Update | `0 4 * * *` (4AM COT) | gemini-2.5-flash | silent |
-| `d98fb828` | Resumen Diario 8PM COT | `0 20 * * *` (8PM COT) | gemini-2.5-flash | announce/telegram |
-| `66d106f5` | Daily Digest 07:00 COT | `0 7 * * *` (7AM COT) | gemini-2.5-flash | announce/telegram |
-| `5bf1dd0b` | Hermes Weekly Planning | `0 9 * * 1` (Lunes 9AM COT) | gemini-2.5-flash | announce/telegram |
-| `6cd68e6d` | Hermes Weekly Report | `0 19 * * 6` (Sábado 7PM COT) | gemini-2.5-flash | silent |
-| `14f62757` | Daily AI News | `0 10 * * *` (10AM COT) | gemini-2.5-flash | announce/telegram |
-| `5449e8c0` | Self-Improve | `0 3 * * *` (3AM COT) | gemini-2.5-flash | silent |
-| `c73ebd13` | Gemini Meeting Notes Check | `*/15 * * * *` (cada 15 min) | gemini-2.5-flash | silent (DEPRECATED) |
-| `7d9d2374` | Weekly Health Check | `0 20 * * 0` (Domingo 8PM COT) | gemini-2.5-flash | — |
-| `5ff0c82d` | Soul Guard Integrity Check | `0 * * * *` (cada hora) | gemini-2.5-flash | — |
+| ID (primeros 8) | Nombre | Schedule | Modelo | Tipo | Estado |
+|-----------------|--------|----------|--------|------|--------|
+| `989b2ef7` | Daily Auto-Update | `0 4 * * *` (4AM COT) | gemini-2.5-flash | silent | ACTIVE |
+| `d98fb828` | Resumen Diario 8PM COT | `0 20 * * *` (8PM COT) | gemini-2.5-flash | announce/telegram | ACTIVE |
+| `66d106f5` | Daily Digest 07:00 COT | `0 7 * * *` (7AM COT) | gemini-2.5-flash | announce/telegram | ACTIVE |
+| `5bf1dd0b` | Hermes Weekly Planning | `0 9 * * 1` (Lunes 9AM COT) | gemini-2.5-flash | announce/telegram | ACTIVE |
+| `6cd68e6d` | Hermes Weekly Report | `0 19 * * 6` (Sábado 7PM COT) | gemini-2.5-flash | silent | ACTIVE |
+| `14f62757` | Daily AI News | `0 10 * * *` (10AM COT) | gemini-2.5-flash | announce/telegram | ACTIVE |
+| `5449e8c0` | Self-Improve | `0 3 * * *` (3AM COT) | gemini-2.5-flash | silent | ACTIVE |
+| `7d9d2374` | Weekly Health Check | `0 20 * * 0` (Domingo 8PM COT) | gemini-2.5-flash | announce/telegram | ACTIVE |
+| `5ff0c82d` | Soul Guard Integrity Check | `0 * * * *` (cada hora) | gemini-2.5-flash | silent | ACTIVE |
+| `8e310986` | Monthly Infra Audit | `0 10 1-7 * 1` (1er Lunes 10AM COT) | gemini-2.5-flash | announce/telegram | ACTIVE |
+| `c73ebd13` | Gemini Meeting Notes Check | `*/5 * * * *` | gemini-2.5-flash | — | **DEPRECATED** |
 
 ---
 
@@ -74,10 +75,18 @@
 - **Tipo:** silent
 
 ### Gemini Meeting Notes Check (`c73ebd13`) ⚠️ DEPRECATED
-- **Schedule:** Cada 15 minutos
-- **Estado:** DEPRECATED — ahora usa N8N webhook
-- **Motivo deprecación:** El polling cada 15 min era costoso e ineficiente. Reemplazado por evento push via N8N.
-- **Propósito original:** Verificar si Google Meet generó notas automáticas y procesarlas.
+- **Schedule:** ~~Cada 5 minutos~~ — DESACTIVADO
+- **Estado:** DEPRECATED (2026-03-31) — ahora usa N8N webhook
+- **Motivo deprecación:** Reemplazado por evento push via N8N. Corrió 876 veces post-reemplazo (~$50-60 USD pérdida). Lección fundacional que motivó la creación de `CRON_LIFECYCLE.md`.
+- **Ver proceso de deprecación:** `docs/CRON_LIFECYCLE.md`
+
+### Monthly Infra Audit (`8e310986`) — NUEVO P6
+- **Schedule:** Primer lunes de cada mes, 10:00 AM COT (`0 10 1-7 * 1`)
+- **Propósito:** Auditar cron jobs y skills activas: success rates, zombies, discrepancias registry vs lista.
+- **Agente:** Flux
+- **Tipo:** announce/telegram
+- **Delivery:** Chat Santiago (1211573593)
+- **Creado:** 2026-03-31 — parte del sistema de gobernanza P6
 
 ### Weekly Health Check — Domingo 8PM (`7d9d2374`)
 - **Schedule:** Domingos 8:00 PM COT

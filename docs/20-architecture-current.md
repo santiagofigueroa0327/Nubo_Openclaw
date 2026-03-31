@@ -1,6 +1,6 @@
 # 20 — Arquitectura Actual (Estado: Marzo 2026)
 
-> Este documento describe la arquitectura completa del sistema Nubo/OpenClaw tal como está desplegado al 2026-03-31. Supersede el documento `01-architecture.md` para el estado actual.
+> Este documento describe la arquitectura completa del sistema Nubo/OpenClaw — **AgentOS v2** — desplegado al 2026-03-31. Supersede `01-architecture.md`. Cambios P1-P6 incluidos.
 
 ---
 
@@ -10,7 +10,7 @@
 |-----------|-----------|---------|
 | Runtime de agentes | OpenClaw | 2026.3.2 |
 | Nubo (orchestrator) | Google Gemini 3.1 Pro Preview | — |
-| Workers (8 agentes) | Google Gemini 2.5 Flash | — |
+| Workers (5 agentes) | Google Gemini 2.5 Flash | — |
 | Zenith (engineering) | Anthropic Claude Opus 4.6 | — |
 | Mission Control | Next.js | 16 (App Router) |
 | DB AgentOS | SQLite | WAL mode |
@@ -61,14 +61,12 @@
 ║  │    │ gemini   │  │        │  │           │  │          │  │  ║
 ║  │    │ 3.1pro   │  │        │  │           │  │          │  │  ║
 ║  │    └──────────┘  └────────┘  └───────────┘  └──────────┘  │  ║
-║  │    ┌──────────┐  ┌────────┐  ┌───────────┐  ┌──────────┐  │  ║
-║  │    │  SPARK   │  │  FLUX  │  │  HERMES   │  │ SENTINEL │  │  ║
-║  │    │ (flash)  │  │(flash) │  │  (flash)  │  │  (flash) │  │  ║
-║  │    └──────────┘  └────────┘  └───────────┘  └──────────┘  │  ║
-║  │    ┌──────────┐                                            │  ║
-║  │    │  AEGIS   │                                            │  ║
-║  │    │ (flash)  │                                            │  ║
-║  │    └──────────┘                                            │  ║
+║  │    ┌──────────┐  ┌────────┐  ┌──────────────────────────┐  │  ║
+║  │    │  FLUX    │  │ HERMES │  │  skills: creative-think  │  │  ║
+║  │    │ (flash)  │  │(flash) │  │  qc-check, assembly      │  │  ║
+║  │    └──────────┘  └────────┘  │  (ex-Spark/Sentinel/     │  │  ║
+║  │                              │   Aegis — P5 2026-03-31) │  │  ║
+║  │                              └──────────────────────────┘  │  ║
 ║  │                                                             │  ║
 ║  │    Ports internos: 18791, 18792 (loopback only)             │  ║
 ║  └─────────────────────────────────────────────────────────────┘  ║
@@ -162,7 +160,7 @@
 
 ### Capa 4: Agentes
 
-9 agentes con workspaces aislados. Cada workspace contiene:
+6 agentes con workspaces aislados (AgentOS v2 — 3 agentes consolidados como skills en P5). Cada workspace contiene:
 - `SOUL.md` — cerebro/protocolo operativo
 - `IDENTITY.md` — identidad y rol
 - `MEMORY.md` — aprendizajes acumulados
@@ -173,10 +171,12 @@
 
 ### Capa 5: Mission Control (Observabilidad)
 
-- Next.js 16 + SQLite
+- Next.js 16 + SQLite (port 3010)
+- Dashboard con GSAP: CostWidget, MissionCard (7 estados), SystemHealth
 - SSE streaming para logs en tiempo real
-- Deep links a misiones individuales
-- Página de Skills
+- Deep links a misiones: `/tasks/agentos-MISSION_ID`
+- `/api/cost-analytics` — telemetría de costos desde session JSONL files
+- Página de Skills (`/skills`)
 - Polling del gateway cada 30s
 
 ---
@@ -334,3 +334,42 @@ MC_PUBLIC_URL=http://187.77.19.111:301
 | `subagents.maxConcurrent` | 2 | Concurrencia de subagentes |
 | `subagents.maxSpawnDepth` | 1 | Profundidad máxima de spawning |
 | `subagents.runTimeoutSeconds` | 2400 | Timeout de sessions_spawn |
+
+---
+
+## AgentOS v2 — Cambios acumulados (P1–P6, 2026-03-31)
+
+### P1 — Baseline audit
+- Confirmación del estado del sistema: 9 agentes, 8 cron jobs, SOUL.md 11,349 chars
+- Limpieza de misión stuck (m-20260329-988)
+
+### P2 — Cost guardrails
+- `cost-guard.sh`: monitoreo horario, alertas Telegram, COST_HARD_STOP signal
+- `dispatch-job`: check COST_HARD_STOP antes de crear misiones; cap diario Zenith (8 jobs/día)
+- Resumen 8PM optimizado: ventana 4h, máx 800 palabras
+- Thresholds: $6/día (alert 70%, stop 120%), $150/mes
+
+### P3 — Protocol hardening
+- `job-watchdog.sh`: auto-retry tras 5 min stale (escribe RETRY_SIGNAL al blackboard)
+- Zenith SOUL.md: restricción explícita — NUNCA sobrescribir workspace de Nubo
+- Skill `delegation-protocol`: routing y anti-patterns documentados
+
+### P4 — Mission Control rebuild
+- Dashboard GSAP: CostWidget, MissionCard (7 estados canónicos), SystemHealth
+- `/api/cost-analytics`: telemetría real de costos desde session JSONL files
+- 7 estados canónicos: planning, dispatched, running, stale_retry, handoff, done, failed
+- Schema upgrade agentos.sqlite: status_detail, telegram_message_id, estimated_cost_usd, daily_cost_cache, cron_job_status
+
+### P5 — Agent consolidation (9→6 agentes)
+- Spark → skill `creative-thinking` en workspace-atlas
+- Sentinel → skill `qc-check` en workspace (Nubo)
+- Aegis → skill `assembly` en workspace (Nubo)
+- `main.subagents.allowAgents`: removidos spark, sentinel, aegis
+- `ops-fusion-design.md`: blueprint para fusión futura Chronos+Flux→Ops
+
+### P6 — Governance
+- `SKILL_LIFECYCLE.md`: proceso de gobernanza de skills (frontmatter obligatorio, tests, deprecación)
+- `CRON_LIFECYCLE.md`: proceso de gobernanza de cron jobs (owner, timeout, deprecation-condition)
+- Auditoría baseline: 31 skills, 1 con frontmatter completo, 30 needs-update
+- Job `8e310986` Monthly Infra Audit: primer lunes de cada mes 10AM COT
+- `cron-registry.md` y `skills-registry.md` actualizados con estado de gobernanza

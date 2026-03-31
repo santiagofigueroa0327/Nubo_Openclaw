@@ -1,17 +1,19 @@
 # 15 — Agent Registry (Estado actual: Marzo 2026)
 
-> Última actualización: 2026-03-31. Este documento describe los 9 agentes del sistema, sus modelos, herramientas, workspaces y protocolos operativos.
+> Última actualización: 2026-03-31 (P5 — AgentOS v2). Este documento describe los 6 agentes activos del sistema. Spark, Sentinel y Aegis fueron consolidados como skills en P5.
 
 ---
 
 ## Visión general
 
-El sistema tiene **9 agentes** organizados en dos niveles:
+El sistema tiene **6 agentes** organizados en dos niveles (AgentOS v2, 2026-03-31):
 
 | Nivel | Agentes | Propósito |
 |-------|---------|-----------|
 | Orquestador | **Nubo (main)** | Único agente que habla con Santiago via Telegram. Delega TODO. |
-| Workers | atlas, zenith, chronos, spark, flux, hermes, sentinel, aegis | Ejecutan tareas especializadas. Responden `ANNOUNCE_SKIP` (invisible para Santiago). |
+| Workers | atlas, zenith, chronos, flux, hermes | Ejecutan tareas especializadas. Responden `ANNOUNCE_SKIP` (invisible para Santiago). |
+
+> **P5 — Consolidación:** Spark → skill `creative-thinking` (Atlas), Sentinel → skill `qc-check` (Nubo), Aegis → skill `assembly` (Nubo). Ver `docs/SKILL_LIFECYCLE.md`.
 
 ---
 
@@ -24,7 +26,7 @@ El sistema tiene **9 agentes** organizados en dos niveles:
 | Workspace | `~/.openclaw/workspace` |
 | AgentDir | `~/.openclaw/agents/main/agent` |
 | Herramientas | exec, process, read, write, sessions_* |
-| Subagentes permitidos | atlas, zenith, chronos, spark, flux, hermes, sentinel, aegis |
+| Subagentes permitidos | atlas, zenith, chronos, flux, hermes |
 | Sandbox | off |
 
 **Rol:** Tech EA de Santiago (CTO, Viva Landscape & Design). Único punto de contacto por Telegram. Orquesta, delega y entrega resultados.
@@ -48,11 +50,11 @@ El sistema tiene **9 agentes** organizados en dos niveles:
 | Investigación, datos, búsquedas web | ATLAS |
 | Código, HTML, debug, scripts, arquitectura | ZENITH |
 | Reuniones, notas, calendario | CHRONOS |
-| Brainstorm, ideas, naming, estrategia | SPARK |
+| Brainstorm, ideas, naming, estrategia | ATLAS (skill: creative-thinking) |
 | Cron, automation, email, Gmail, skills | FLUX |
 | ClickUp, tareas, planning semanal | HERMES |
-| Validación QA (solo high-risk) | SENTINEL |
-| Ensamblaje final (multi-agente complejo) | AEGIS |
+| Validación QA (solo high-risk) | NUBO (skill: qc-check) |
+| Ensamblaje final (multi-agente complejo) | NUBO (skill: assembly) |
 
 **Comandos exec permitidos (lista completa):**
 ```
@@ -149,21 +151,12 @@ Zenith sobrescribió `SOUL.md` de Nubo reduciéndolo de 302 a 30 líneas. Nubo p
 
 ---
 
-## 5. Spark — ✨ Brainstorm & Strategy
+## ~~5. Spark~~ → Skill `creative-thinking` (Atlas) — P5 2026-03-31
 
-| Campo | Valor |
-|-------|-------|
-| Modelo | `google/gemini-2.5-flash` |
-| Fallbacks | `openai/gpt-4o`, `google/gemini-2.5-pro` |
-| Workspace | `~/.openclaw/workspace-spark` |
-| Herramientas | read, write, web_search, web_fetch (NO exec) |
-| Sessions | DENEGADAS |
+Spark fue consolidado como skill. Toda su lógica está disponible en:
+`~/.openclaw/workspace-atlas/skills/creative-thinking/SKILL.md`
 
-**Cuándo:** Ideas, naming, estrategia, SCAMPER, Six Hats, métricas de impacto.
-
-**Output:** Ideas rankeadas por factibilidad × impacto, plan de implementación top 3.
-
-**Autonomía:** Alta para brainstorming. NUNCA ejecuta cambios (solo propuestas).
+Dispatch: `dispatch-job atlas "... usar skill creative-thinking"`
 
 ---
 
@@ -215,64 +208,17 @@ Zenith sobrescribió `SOUL.md` de Nubo reduciéndolo de 302 a 30 líneas. Nubo p
 
 ---
 
-## 8. Sentinel — 🛡️ QA Validator
+## ~~8. Sentinel~~ → Skill `qc-check` (Nubo) — P5 2026-03-31
 
-| Campo | Valor |
-|-------|-------|
-| Modelo | `google/gemini-2.5-flash` |
-| Workspace | `~/.openclaw/workspace-sentinel` |
-| Herramientas | **read, write SOLO** (no exec, no web) |
-| Sessions | DENEGADAS |
-
-**Cuándo usar:** Solo para high-risk: producción, emails masivos, cambios de infra. NO para research ni brainstorm.
-
-**Criterios de validación (0-100 cada uno):**
-- Completitud (completeness)
-- Precisión (accuracy)
-- Formato (format)
-- Seguridad (security) — si FAIL → veredicto automático FAIL
-- Concisión (conciseness)
-
-**PASS si:** weighted_score ≥ 70 AND security != FAIL
-
-**Hallucination Detection:** Si result.md tiene claims fácticos sin evidencia en `evidence/` → accuracy_score = 0 → FAIL.
-
-**Repair loop:** Max 2 reintentos. En intento 3 → escalar a Nubo.
-
-**Output:** `validation.json` + `result.md` propio.
+Sentinel fue consolidado como skill. Criterios QA, ponderaciones y validation.json preservados en:
+`~/.openclaw/workspace/skills/qc-check/SKILL.md`
 
 ---
 
-## 9. Aegis — 🏛️ Final Assembler
+## ~~9. Aegis~~ → Skill `assembly` (Nubo) — P5 2026-03-31
 
-| Campo | Valor |
-|-------|-------|
-| Modelo | `google/gemini-2.5-flash` |
-| Workspace | `~/.openclaw/workspace-aegis` |
-| Herramientas | **read, write SOLO** |
-| Sessions | DENEGADAS |
-
-**Cuándo usar:** Solo en misiones multi-agente complejas que necesitan pulido final. No en tareas simples.
-
-**Proceso:** Lee todos los result.md → verifica validation.json (PASS) → ensambla narrative → genera `final_answer_telegram.md`.
-
-**Spanish Gate:** TODO output para Telegram DEBE estar en español.
-
-**Output format (`final_answer_telegram.md`):**
-```
-[emoji] *Título de la misión*
-
-[Resumen 1-2 líneas]
-
-*Resultado:*
-[bullet points]
-
-*Next steps:*
-- [acción concreta]
-
-*Participaron:* Agent1, Agent2
-_Preparado por Aegis_ 🏛️
-```
+Aegis fue consolidado como skill. Templates Telegram y flujo de ensamblaje preservados en:
+`~/.openclaw/workspace/skills/assembly/SKILL.md`
 
 ---
 
