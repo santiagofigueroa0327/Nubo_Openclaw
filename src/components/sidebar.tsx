@@ -20,7 +20,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-56 bg-bg border-r border-border flex flex-col z-30">
+    <aside className="fixed left-0 top-0 h-screen w-56 bg-bg border-r border-border flex flex-col z-30 hidden lg:flex">
       <div className="px-5 py-5 border-b border-border">
         <Link href="/tasks" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-cyan to-accent-purple flex items-center justify-center">

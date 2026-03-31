@@ -30,7 +30,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <Sidebar />
-        <main className="ml-56 min-h-screen">
+        <main className="lg:ml-56 min-h-screen">
           <Topbar />
           <div className="p-6">{children}</div>
         </main>

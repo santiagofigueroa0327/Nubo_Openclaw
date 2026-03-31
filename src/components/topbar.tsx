@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { SearchIcon, UserIcon } from "./ui/icons";
+import { SearchIcon, UserIcon, MenuIcon } from "./ui/icons";
 
 const PAGE_TITLES: Record<string, string> = {
   "/tasks": "Tasks",
@@ -19,9 +19,16 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-20 h-14 bg-bg/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6">
-      <h2 className="text-base font-semibold text-text">
-        {getPageTitle(pathname)}
-      </h2>
+      <div className="flex items-center">
+        <button
+          className="lg:hidden mr-4 p-2 rounded-md hover:bg-bg2/50 focus:outline-none focus:ring-2 focus:ring-accent-cyan"
+        >
+          <MenuIcon className="w-5 h-5 text-muted" />
+        </button>
+        <h2 className="text-base font-semibold text-text">
+          {getPageTitle(pathname)}
+        </h2>
+      </div>
 
       <div className="flex items-center gap-4">
         <div className="relative">
