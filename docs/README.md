@@ -55,6 +55,7 @@ This directory contains the complete documentation for the Nubo/OpenClaw ecosyst
 | 20 | [Arquitectura Actual](./20-architecture-current.md) | Stack completo, diagrama, flujo de datos, límites de contexto |
 | 21 | [Roadmap de Mejoras](./21-improvement-roadmap.md) | 16 mejoras priorizadas P0→P3 |
 | 22 | [Config Reference](./22-config-reference.md) | openclaw.json completo (secretos REDACTED) |
+| 23 | [Logs y Métricas — Marzo 2026](./23-system-logs-march2026.md) | 402 misiones, cron runs, errores, timeline de eventos del mes |
 
 ---
 
