@@ -1,8 +1,20 @@
 // === Task Status (drives state machine) ===
-export type TaskStatus = "queued" | "running" | "completed" | "blocked" | "failed";
+export type TaskStatus =
+  | "queued"       // legacy — kept for compatibility
+  | "planning"     // AgentOS v2: Nubo is planning before dispatch
+  | "dispatched"   // AgentOS v2: job created, waiting for sessions_spawn
+  | "running"      // active worker session
+  | "stale_retry"  // AgentOS v2: stale heartbeat, auto-retry triggered
+  | "handoff"      // AgentOS v2: worker passed to next agent
+  | "completed"    // legacy — kept for compatibility
+  | "done"         // AgentOS v2: terminal success
+  | "blocked"      // legacy — kept for compatibility
+  | "failed"       // terminal failure
+  | "archived"     // soft-deleted / moved to history
+  | "cancelled";   // AgentOS v2: cancelled by user or system
 
 // === Source Channels ===
-export type SourceChannel = "slack" | "api" | "github" | "manual" | "email";
+export type SourceChannel = "slack" | "api" | "github" | "manual" | "email" | "telegram" | "cron" | "agent";
 
 // === Log Levels ===
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -32,6 +44,51 @@ export interface TaskRow {
   updatedAt: number;
   finalOutput: string | null;
   errorSummary: string | null;
+  // AgentOS fields (added by agentos-sync)
+  archivedAt: number | null;
+  stuckReason: string | null;
+  agentosId: string | null;
+  agentosStatus: string | null;
+  workflowStep: string | null;
+  validationScore: number | null;
+  validationVerdict: string | null;
+  retryCount: number | null;
+  jobCount: number | null;
+}
+
+export interface NotificationStateRow {
+  taskId: string;
+  missionId: string | null;
+  jobId: string | null;
+  channel: string;
+  chatId: string | null;
+  messageId: string | null;
+  lastStatus: string;
+  deliveredFinal: number;
+  deliveredAt: number | null;
+  lastEditAt: number | null;
+  lastError: string | null;
+  mcLink: string | null;
+  retryCount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AgentOSJob {
+  jobId: string;
+  taskId: string;
+  missionId: string;
+  agentId: string;
+  status: string;
+  jobDir: string;
+  retryCount: number;
+  validationVerdict: string | null;
+  validationScore: number | null;
+  workflowStep?: string | null;
+  dispatchedAt: number | null;
+  completedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface EventRow {
@@ -58,6 +115,7 @@ export interface AgentRow {
   capabilitiesJson: string;
   enabled: number;
   defaultModelPolicy: string;
+  description: string;
 }
 
 // === API Response Types (parsed) ===
@@ -75,6 +133,14 @@ export interface TaskLog extends Omit<TaskLogRow, "metaJson"> {
 export interface Agent extends Omit<AgentRow, "capabilitiesJson" | "enabled"> {
   capabilities: string[];
   enabled: boolean;
+}
+
+// Extended agent with openclaw.json data
+export interface AgentConfig extends Agent {
+  model: string;
+  fallbacks: string[];
+  tools: { allow: string[]; deny: string[] };
+  skills: string[];
 }
 
 // === API Error ===

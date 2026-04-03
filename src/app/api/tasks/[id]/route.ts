@@ -24,7 +24,9 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(task);
+    return NextResponse.json(task, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" },
+    });
   } catch (err) {
     logger.error("Failed to get task", { requestId, message: String(err) });
     return NextResponse.json(
@@ -131,5 +133,30 @@ export async function PATCH(
       { error: "Internal Server Error", message, requestId },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const requestId = createRequestId();
+
+  try {
+    const db = getDb();
+    const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | undefined;
+    if (!task) {
+      return NextResponse.json({ error: "Not Found", message: `Task ${id} not found`, requestId }, { status: 404 });
+    }
+
+    // Cascade-delete: task_logs, events, notification_state deleted via FK ON DELETE CASCADE
+    db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+
+    logger.info(`Task ${id} deleted`, { requestId });
+    return NextResponse.json({ deleted: true, id });
+  } catch (err) {
+    logger.error("Failed to delete task", { requestId, message: String(err) });
+    return NextResponse.json({ error: "Internal Server Error", message: String(err), requestId }, { status: 500 });
   }
 }

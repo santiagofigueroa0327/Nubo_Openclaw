@@ -19,16 +19,30 @@ export async function GET(request: NextRequest) {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
-    if (status) {
-      conditions.push("status = ?");
-      params.push(status);
+    // "archived" is not a status value — it's indicated by archivedAt IS NOT NULL.
+    // Any other status filter implicitly excludes archived tasks (archivedAt IS NULL).
+    if (status === "archived") {
+      conditions.push("archivedAt IS NOT NULL");
+    } else {
+      // Default: never show archived tasks unless explicitly requested
+      conditions.push("archivedAt IS NULL");
+      if (status) {
+        conditions.push("status = ?");
+        params.push(status);
+      }
     }
+
     if (agent) {
       conditions.push("primaryAgent = ?");
       params.push(agent);
     }
+    const model = url.searchParams.get("model");
+    if (model) {
+      conditions.push("model = ?");
+      params.push(model);
+    }
 
-    const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+    const where = ` WHERE ${conditions.join(" AND ")}`;
     const tasks = db
       .prepare(`SELECT * FROM tasks${where} ORDER BY receivedAt DESC LIMIT ? OFFSET ?`)
       .all(...params, limit, offset);
@@ -43,7 +57,10 @@ export async function GET(request: NextRequest) {
       path: "/api/tasks",
       durationMs: Date.now() - start,
     });
-    return NextResponse.json({ tasks, total });
+    return NextResponse.json(
+      { tasks, total },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
+    );
   } catch (err) {
     logger.error("Failed to list tasks", { requestId, message: String(err) });
     return NextResponse.json(

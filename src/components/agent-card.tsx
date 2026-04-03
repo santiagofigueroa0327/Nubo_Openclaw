@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import type { Agent } from "@/lib/types";
 
 export function AgentCard({ agent, index }: { agent: Agent; index: number }) {
@@ -10,7 +11,10 @@ export function AgentCard({ agent, index }: { agent: Agent; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.2 }}
       whileHover={{ y: -2 }}
-      className="rounded-xl border border-border bg-surface/30 p-5 transition-colors hover:border-accent-cyan/20"
+    >
+    <Link
+      href={`/agents/${agent.agentId}`}
+      className="block rounded-xl border border-border bg-surface/30 p-5 transition-colors hover:border-accent-cyan/20"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -48,6 +52,7 @@ export function AgentCard({ agent, index }: { agent: Agent; index: number }) {
           Model: <span className="text-text/70 font-mono">{agent.defaultModelPolicy || "default"}</span>
         </p>
       </div>
+    </Link>
     </motion.div>
   );
 }

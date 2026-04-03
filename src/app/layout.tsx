@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { Sidebar } from "@/components/sidebar";
-import { Topbar } from "@/components/topbar";
+import { LayoutShell } from "@/components/layout-shell";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,6 +18,11 @@ export const metadata: Metadata = {
   description: "OpenClaw Gateway Operations Dashboard",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,11 +33,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <Sidebar />
-        <main className="lg:ml-56 min-h-screen">
-          <Topbar />
-          <div className="p-6">{children}</div>
-        </main>
+        <LayoutShell>{children}</LayoutShell>
       </body>
     </html>
   );

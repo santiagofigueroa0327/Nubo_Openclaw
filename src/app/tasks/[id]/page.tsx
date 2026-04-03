@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import type { TaskRow, EventRow, TaskLogRow } from "@/lib/types";
